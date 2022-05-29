@@ -1,18 +1,18 @@
 package som
 
-class Lattice (val width: Int, val height: Int, val learningFactor: Double,
-               val factorController: Double, val neighRadius: Int,
-               val radiusController: Double,
+class Lattice (val width: Int, val height: Int,
+               val learningFactor: Double, val factorController: Double,
+               val neighRadius: Int, val radiusController: Double,
                distanceFn: (Array[Double], Array[Double]) => Double,
-               bmuTrainingFn: (Array[Double], Array[Double], Int) => Unit,
-               bmuTuningFn: (Array[Double], Array[Double], Int) => Unit,
-               neighborTrainingFn: (Int, Int, Neuron, Array[Double], Int) => Unit,
-               neighborhoodFn: (Int, Int, Int, Int, Int) => Double) {
+               neighborhoodFn: (Int, Int, Int, Int, Double, Int) => Double,
+               learningFactorUpdateFn: (Double, Int, Double) => Double,
+               neighborhoodRadiusUpdateFn: (Int, Int, Double) => Double) {
 
   /*
    * Class fields
    */
-  private val neurons = Array.ofDim[Neuron](width, height)
+  val neurons: Array[Array[Neuron]] = Array.ofDim[Neuron](width, height)
+  private var dimensionality = 0
   private var tuningStage = false
 
 
@@ -25,6 +25,8 @@ class Lattice (val width: Int, val height: Int, val learningFactor: Double,
   def constructLattice (vectorDim: Int, vectorInitFn: (Array[(Double, Double)], Int) => Array[Double],
                         dimBounds: Array[(Double, Double)]): Unit = {
     //TODO change to abstract when rectangular and hexagonal lattices are implemented
+    dimensionality = vectorDim
+
     for (i <- 0 until width; j <- 0 until height) {
       neurons(i)(j) = new Neuron(i, j, vectorDim, vectorInitFn, distanceFn)
       neurons(i)(j).initializeWeights(dimBounds)
@@ -112,7 +114,8 @@ class Lattice (val width: Int, val height: Int, val learningFactor: Double,
       val currentWeight = bmuWeights(i)
 
       // Updates current dimension of the weight vector
-      bmuWeights.update(i,  currentWeight + currentFactor(epoch) * (currentWeight - inputVector(i)))
+      bmuWeights.update(i,  currentWeight + learningFactorUpdateFn(learningFactor, epoch, factorController) *
+                            (currentWeight - inputVector(i)))
     }
   }
 
@@ -151,58 +154,15 @@ class Lattice (val width: Int, val height: Int, val learningFactor: Double,
       val currentWeight = weights(i)
 
       // Updates current dimension of the weight vector
-      weights.update(i,  currentWeight + currentFactor(epoch) * neighborhoodFunction(bmuX, bmuY, neighbor.xPos,
-                         neighbor.yPos, epoch) * (inputVector(i) - currentWeight))
+      weights.update(i,  currentWeight + learningFactorUpdateFn(learningFactor, epoch, factorController) *
+                         neighborhoodFn(bmuX, bmuY, neighbor.xPos, neighbor.yPos,
+                         neighborhoodRadiusUpdateFn(neighRadius, epoch, radiusController), epoch) *
+                         (inputVector(i) - currentWeight))
     }
   }
 
 
-  /**
-   * Neighborhood function, which gradually reduces the impact of an input
-   * on the neuron depending of its relative position to the BMU
-   * Uses the gaussian function:
-   * exp(squaredDistance(BMU, neighbor) / 2 * currentRadius**2
-   *
-   * @param bmuX Value of x position of the BMU on the lattice
-   * @param bmuY Value of the y position of the BMU on the lattice
-   * @param neighX Value of x position of the neighbor on the lattice
-   * @param neighY Value of the y position of the neighbor on the lattice
-   * @param epoch Current time value
-   * @return
-   */
-  def neighborhoodFunction (bmuX: Int, bmuY: Int, neighX: Int, neighY: Int, epoch: Int): Double = {
-    val distance = math.pow(bmuX - neighX, 2) + math.pow(bmuY - neighY, 2)
-
-    val value  = math.exp( (-distance) / (2 * math.pow(currentRadius(epoch), 2)))
-
-    if (value.isNaN) 0 else value
-    //if (distance == 0) 0 else 1 / math.sqrt(distance)
-  }
-
-
-  /**
-   * Adapts the learning factor to a given time status
-   * @param epoch Current time value
-   * @return Learning factor to apply at given time
-   */
-  def currentFactor (epoch: Int): Double = {
-    // Exponentially decreases the learning factor depending of epoch
-    val value = learningFactor * math.exp(-epoch / factorController)
-    if (value.isNaN) 0 else value
-  }
-
-
-  /**
-   * Adapts the neighborhood radius to a given time status
-   * @param epoch Current time value
-   * @return Learning factor to apply at given time
-   */
-  def currentRadius (epoch: Int): Double = {
-    // Exponentially decreases the neighborhood radius depending of epoch
-    val value = neighRadius * math.exp(-epoch / radiusController)
-
-    if (value.isNaN) 0 else value
-  }
+  def somDimensionality: Int = dimensionality
 
 
   /**

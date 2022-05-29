@@ -22,7 +22,7 @@ object SOMRunner {
                  somLearningFactor: Double, somFactorController: Double, somNeighRadius: Int,
                  somRadiusController: Double, maxTrainingIter: Int): Unit = {
     // Loads dataset
-    val data = VectorLoader.loadFromCSV(datasetPath, datasetSeparator)
+    val data = ReaderWriter.loadSetFromCSV(datasetPath, datasetSeparator)
     // Gets inputs' dimensionality
     val dimensionality = data._1
     // Defines training set as the 80% of the dataset
@@ -39,49 +39,19 @@ object SOMRunner {
     trainingSet.normalize()
 
     // Creates the SOM lattice with specified parameters
-    val som = new Lattice(9, 6, somLearningFactor, somFactorController, somNeighRadius, somRadiusController)
+    val som = new Lattice(9, 6, somLearningFactor, somFactorController, somNeighRadius,
+                          somRadiusController, FunctionCollector.euclideanDistance, FunctionCollector.gaussianNeighborhood,
+                          FunctionCollector.exponentialFactorDecrease, FunctionCollector.exponentialRadiusDecrease)
 
     // Sets the initial state of the lattice by initializing neurons and setting the distance function
-    som.constructLattice(dimensionality, vectorInitFn, trainingSet.dimBounds, distanceFn)
-
-    //som.printSet()
+    som.constructLattice(dimensionality, FunctionCollector.normalizedRandomInit, trainingSet.dimBounds)
 
     // SOM's training process
     som.organizeMap(trainingSet, maxTrainingIter, 0)
 
+    som.printSet()
     som.printMap()
-  }
 
-
-  /**
-   * Creates a vector with random values in the range provided
-   * @param bounds Set of lower and upper bounds for each dimension
-   * @param dim Dimensionality of the vector
-   * @return The created random vector
-   */
-  def vectorInitFn (bounds: Array[(Double, Double)], dim: Int): Array[Double] = {
-    val x = new Array[Double](dim)
-
-    for (i <- 0 until dim) {
-      val dimMin = bounds(i)._1
-      val dimMax = bounds(i)._2
-
-      x.update(i, (Random.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
-    }
-    /**print("Vector: ")
-    x.foreach(x => print(x + ", "))
-    println()*/
-    x
-  }
-
-
-  /**
-   * Computes the simple euclidean distance between two vectors
-   * @param arr1 1st vector
-   * @param arr2 2do vector
-   * @return
-   */
-  def distanceFn (arr1: Array[Double], arr2: Array[Double]): Double = {
-    math.sqrt((arr1 zip arr2).map(x => math.pow(x._1 - x._2, 2)).sum)
+    ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)
   }
 }
