@@ -24,7 +24,7 @@ class Neuron (val xPos: Int, val yPos: Int, val weightVector: Array[Double],
    * @param vectorInitFn Function to initialize this neuron's weights vector
    * @param bounds Set of lower and upper bounds for each dimension
    */
-  def initializeWeights (vectorInitFn: (Array[Double], Array[(Double, Double)]) => Array[Double],
+  def initializeWeights (vectorInitFn: (Array[Double], Array[(Double, Double)]) => Unit,
                          bounds: Array[(Double, Double)]): Unit = {
     vectorInitFn(weightVector, bounds)
   }

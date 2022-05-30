@@ -38,6 +38,22 @@ object SOMRunner {
     trainingSet.findBounds()
     trainingSet.normalize()
 
+    //TODO This code loads a pre-trained SOM from a file
+    val load = ReaderWriter.loadTrainingFromCSV("/home/xandor19/training.csv", ',')
+    // Creates the SOM lattice with specified parameters
+    val som = new Lattice(load._1(0), load._1(1), somLearningFactor, somFactorController, somNeighRadius,
+                          somRadiusController, FunctionCollector.euclideanDistance,
+                          FunctionCollector.gaussianNeighborhood, FunctionCollector.exponentialFactorDecrease,
+                          FunctionCollector.exponentialRadiusDecrease)
+
+    // Imports the received training information to the SOM
+    som.importLattice(load._2, load._1(2))
+
+    // Clusters the training set in the pre-trained SOM
+    trainingSet.vectors.foreach(x => som.clusterInput(x))
+
+    //TODO this code trains a new SOM
+    /**
     // Creates the SOM lattice with specified parameters
     val som = new Lattice(9, 6, somLearningFactor, somFactorController, somNeighRadius,
                           somRadiusController, FunctionCollector.euclideanDistance, FunctionCollector.gaussianNeighborhood,
@@ -49,9 +65,9 @@ object SOMRunner {
     // SOM's training process
     som.organizeMap(trainingSet, maxTrainingIter, 0)
 
+    ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)*/
+
     som.printSet()
     som.printMap()
-
-    ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)
   }
 }

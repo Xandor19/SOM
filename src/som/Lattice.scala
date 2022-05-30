@@ -22,7 +22,7 @@ class Lattice (val width: Int, val height: Int,
    * @param vectorInitFn Function to initialize the weights
    * @param dimBounds Set of lower and upper bounds for each dimension
    */
-  def constructLattice (vectorDim: Int, vectorInitFn: (Array[Double], Array[(Double, Double)]) => Array[Double],
+  def constructLattice (vectorDim: Int, vectorInitFn: (Array[Double], Array[(Double, Double)]) => Unit,
                         dimBounds: Array[(Double, Double)]): Unit = {
     //TODO change to abstract when rectangular and hexagonal lattices are implemented
     dimensionality = vectorDim
@@ -44,9 +44,10 @@ class Lattice (val width: Int, val height: Int,
    * @param weightsSet The array of weight vectors to place in
    *                   the map
    */
-  def importLattice (weightsSet: Array[Array[Double]]): Unit = {
+  def importLattice (weightsSet: List[Array[Double]], vectorDim: Int): Unit = {
+    dimensionality = vectorDim
     // Checks wetter there are as much weight vectors as neurons
-    if (weightsSet.length == width * height) {
+    if (weightsSet.size == width * height) {
       // Iterator for the received vectors
       val it = weightsSet.iterator
 
@@ -84,11 +85,15 @@ class Lattice (val width: Int, val height: Int,
       vectorSet.reset()
     }
     // Once the map is organized, present inputs one last time to form clusters
-    vectorSet.vectors.foreach(x => {
-      val bmu = findBMU(x.vector)
-      bmu.adoptInput(x)
-    })
+    vectorSet.vectors.foreach(x => clusterInput(x))
   }
+
+
+  /**
+   * Assigns the received input to a neuron of this map
+   * @param inputVector Input vector to cluster in the map
+   */
+  def clusterInput (inputVector: InputVector): Unit = findBMU(inputVector.vector).adoptInput(inputVector)
 
 
   /**
