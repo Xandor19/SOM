@@ -2,10 +2,32 @@ package som
 
 import java.util.Formatter
 
+import javax.swing.JPopupMenu.Separator
+
 /**
  * Provides functions to load input vectors from different sources
  */
 object ReaderWriter {
+
+
+  /**
+   * Loads a generic csv file into a list of records
+   * @param path Path to csv file
+   * @param separator Columns separator of the csv
+   * @return List with all the csv's lines
+   */
+  def loadCSV (path: String, separator: Char): List[String] = {
+    // Opens file
+    val bufferedSource = io.Source.fromFile(path)
+    // Read all lines from file
+    val lines = bufferedSource.getLines().toList
+    // Closes file
+    bufferedSource.close()
+
+    lines
+  }
+
+
   /**
    * Loads dataset from csv
    *
@@ -13,6 +35,7 @@ object ReaderWriter {
    * column being the class to which the instance belongs:
    * value1, value2, value3, ..., valueN, class (str)
    *
+    // Closes file
    * csv must always have class column, for unclassified instances,
    * leave class field as " "
    *
@@ -20,12 +43,10 @@ object ReaderWriter {
    * @param separator Columns separator of the csv
    * @return Tuple (inputs dimension, input features, inputs)
    */
-  def loadSetFromCSV(path: String, separator: Char): (Int, Array[String], List[InputVector]) = {
-    // Opens file
-    val bufferedSource = io.Source.fromFile(path)
-    // Read all lines from file
-    val records = bufferedSource.getLines().toList
-    // Obtains the input's features names
+  def loadSetFromCSV (path: String, separator: Char): (Int, Array[String], List[InputVector]) = {
+    // Reads csv
+    val records = loadCSV (path, separator)
+    // Obtains features names
     val features = records.head.split(separator).map(_.trim)
     // Obtains the input's dimensionality
     val dimensionality = features.length - 1
@@ -41,22 +62,20 @@ object ReaderWriter {
       vectors = vectors.appended(new InputVector(dimensionality,
                                                  cleared.slice(0, dimensionality).map(_.toDouble), cleared.last))
     }
-    // Closes file
-    bufferedSource.close()
-
     (dimensionality, features, vectors)
   }
 
 
-  def loadSetFromJSON(): (Int, List[String], List[InputVector]) = {
+  def loadSetFromJSON (): (Int, List[String], List[InputVector]) = {
     (0, List.empty[String], List.empty[InputVector])
   }
 
 
-  def loadSetFromXML(): (Int, List[String], List[InputVector]) = {
+  def loadSetFromXML (): (Int, List[String], List[InputVector]) = {
     (0, List.empty[String], List.empty[InputVector])
   }
 
+  //TODO define how to import/export the metrics (functions, factors) used in the concrete map
 
   /**
    * Loads a set of pre-trained weight vectors from a csv file
@@ -72,10 +91,9 @@ object ReaderWriter {
    * @return
    */
   def loadTrainingFromCSV (path: String, separator: Char): (Array[Int], List[Array[Double]]) = {
-    val bufferedSource = io.Source.fromFile(path)
-    // Read all lines from file
-    val records = bufferedSource.getLines().toList
-    // Obtains the input's features names
+    // Reads csv
+    val records = loadCSV(path, separator)
+    // Obtains the map's topography
     val data = records.head.split(separator).map(_.trim.toInt)
     // Set of weight vectors
     var vectors = List.empty[Array[Double]]
