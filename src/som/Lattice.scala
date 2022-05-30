@@ -22,15 +22,41 @@ class Lattice (val width: Int, val height: Int,
    * @param vectorInitFn Function to initialize the weights
    * @param dimBounds Set of lower and upper bounds for each dimension
    */
-  def constructLattice (vectorDim: Int, vectorInitFn: (Array[(Double, Double)], Int) => Array[Double],
+  def constructLattice (vectorDim: Int, vectorInitFn: (Array[Double], Array[(Double, Double)]) => Array[Double],
                         dimBounds: Array[(Double, Double)]): Unit = {
     //TODO change to abstract when rectangular and hexagonal lattices are implemented
     dimensionality = vectorDim
 
     for (i <- 0 until width; j <- 0 until height) {
-      neurons(i)(j) = new Neuron(i, j, vectorDim, vectorInitFn, distanceFn)
-      neurons(i)(j).initializeWeights(dimBounds)
+      neurons(i)(j) = new Neuron(i, j, new Array[Double](dimensionality), distanceFn)
+      neurons(i)(j).initializeWeights(vectorInitFn, dimBounds)
     }
+  }
+
+
+  /**
+   * Initializes the neurons of the lattice with
+   * the weight vectors received from an external source
+   *
+   * Weight vector are ordered in width-then-height indexation,
+   * namely, each row is presented sequentially
+   *
+   * @param weightsSet The array of weight vectors to place in
+   *                   the map
+   */
+  def importLattice (weightsSet: Array[Array[Double]]): Unit = {
+    // Checks wetter there are as much weight vectors as neurons
+    if (weightsSet.length == width * height) {
+      // Iterator for the received vectors
+      val it = weightsSet.iterator
+
+      // Assigns each weight vector to the neuron in the corresponding position
+      for (i <- 0 until width; j <- 0 until height) {
+        neurons(i)(j) = new Neuron(i, j, it.next(), distanceFn)
+      }
+    }
+    // An invalid vector set was received
+    else throw new IllegalStateException("Amount of weight vectors differs from total amount of neurons in the lattice")
   }
 
 

@@ -4,17 +4,15 @@ package som
  * Class to represent a Self-Organizing Map neuron
  * @param xPos This neuron's x coordinate in the grid
  * @param yPos This neuron's y coordinate in the grid
- * @param vectorDim Weigh vector dimension
- * @param vectorInitFn Function used to initialize the weight vector
+ * @param weightVector This neuron's weight vector
  * @param distanceFn Function to determine the distance between two weight vectors
  */
-class Neuron (val xPos: Int, val yPos: Int, val vectorDim: Int,
-              val vectorInitFn: (Array[(Double, Double)], Int) => Array[Double],
+class Neuron (val xPos: Int, val yPos: Int, val weightVector: Array[Double],
               val distanceFn: (Array[Double], Array[Double]) => Double) {
   /*
    * Class fields
    */
-  private var weightVector = new Array[Double](vectorDim)
+  private var vectorDim = weightVector.length
   private var representedInputs = List.empty[InputVector]
   private var neighbors = Map.empty[Neuron, Int]
   /**var bias = 0*/
@@ -23,10 +21,12 @@ class Neuron (val xPos: Int, val yPos: Int, val vectorDim: Int,
   /**
    * Encapsulates the application of this neuron's weight vector initialization
    * function
+   * @param vectorInitFn Function to initialize this neuron's weights vector
    * @param bounds Set of lower and upper bounds for each dimension
    */
-  def initializeWeights (bounds: Array[(Double, Double)]): Unit = {
-    weightVector = vectorInitFn(bounds, vectorDim)
+  def initializeWeights (vectorInitFn: (Array[Double], Array[(Double, Double)]) => Array[Double],
+                         bounds: Array[(Double, Double)]): Unit = {
+    vectorInitFn(weightVector, bounds)
   }
 
 
@@ -54,13 +54,6 @@ class Neuron (val xPos: Int, val yPos: Int, val vectorDim: Int,
 
 
   /**
-   * Updates this neuron's weights vector with a incoming set of values
-   * @param newWeights Updated weight vector
-   */
-  def updateWeights (newWeights: Array[Double]): Unit = weightVector = newWeights
-
-
-  /**
    * Gets this neuron's current weights vector
    * @return
    */
@@ -72,7 +65,6 @@ class Neuron (val xPos: Int, val yPos: Int, val vectorDim: Int,
    * @param inputVector Vector to be represented by this neuron
    */
   def adoptInput (inputVector: InputVector): Unit = {
-    //println("Input represented by neuron at: (" + xPos + ", " + yPos + ")")
     representedInputs = representedInputs.appended(inputVector)
   }
 
@@ -98,10 +90,6 @@ class Neuron (val xPos: Int, val yPos: Int, val vectorDim: Int,
     if (neigh != null && !neighbors.keys.exists(x => x.equals(neigh))) {
       // Adds received neuron as 1st party neighbor
       neighbors = neighbors.updated(neigh, depth)
-
-//      // Checks wetter a wider neighborhood is defined and adds the received neuron's neighbors and so on
-//      if (radius > 1) depthNeighbors(neigh.neighbors.keys.toArray, 2, radius)
-//      // Successful addition
       true
     }
     // Unsuccessful addition

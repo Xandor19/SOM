@@ -5,23 +5,22 @@ import scala.util.Random
 object FunctionCollector {
   /**
    * Creates a vector with random values in the range provided
+   * @param vector Vector to initialize
    * @param bounds Set of lower and upper bounds for each dimension
-   * @param dim Dimensionality of the vector
    * @return The created random vector
    */
-  def normalizedRandomInit (bounds: Array[(Double, Double)], dim: Int): Array[Double] = {
-    val x = new Array[Double](dim)
+  def normalizedRandomInit (vector: Array[Double], bounds: Array[(Double, Double)]): Unit = {
+    val dim = vector.length
 
     for (i <- 0 until dim) {
       val dimMin = bounds(i)._1
       val dimMax = bounds(i)._2
 
-      x.update(i, (Random.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
+      vector.update(i, (Random.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
     }
     /**print("Vector: ")
     x.foreach(x => print(x + ", "))
     println()*/
-    x
   }
 
 
