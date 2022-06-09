@@ -11,16 +11,17 @@ object SOMRunner {
     val somFactorController = 0.5
     val somNeighRadius = 5
     val somRadiusController = 0.5
-    val maxTrainingIter = 108000
+    val roughIters = 1000
+    val tuningIters = 108000
 
     createSOM(path, sep, trainingSetSize, somLearningFactor, somFactorController, somNeighRadius,
-              somRadiusController, maxTrainingIter)
+              somRadiusController, roughIters, tuningIters)
   }
 
 
   def createSOM (datasetPath: String, datasetSeparator: Char, trainingSetProp: Double,
-                 somLearningFactor: Double, somFactorController: Double, somNeighRadius: Int,
-                 somRadiusController: Double, maxTrainingIter: Int): Unit = {
+                 somLearningFactor: Double, somTuningFactor: Double, somNeighRadius: Int,
+                 somRadiusController: Double, roughIters: Int, tuningIters: Int): Unit = {
     // Loads dataset
     val data = ReaderWriter.loadSetFromCSV(datasetPath, datasetSeparator)
     // Gets inputs' dimensionality
@@ -39,33 +40,33 @@ object SOMRunner {
     trainingSet.normalize()
 
     //TODO This code loads a pre-trained SOM from a file
-    val load = ReaderWriter.loadTrainingFromCSV("/home/xandor19/training.csv", ',')
+    /**val load = ReaderWriter.loadTrainingFromCSV("/home/xandor19/training.csv", ',')
     // Creates the SOM lattice with specified parameters
-    val som = new Lattice(load._1(0), load._1(1), somLearningFactor, somFactorController, somNeighRadius,
+    val som = new RectLattice(load._1(0), load._1(1), somLearningFactor, somFactorController, somNeighRadius,
                           somRadiusController, FunctionCollector.euclideanDistance,
-                          FunctionCollector.gaussianNeighborhood, FunctionCollector.exponentialFactorDecrease,
-                          FunctionCollector.exponentialRadiusDecrease)
+                          FunctionCollector.gaussianNeighborhood, FunctionCollector.exponentialRadiusDecrease)
 
     // Imports the received training information to the SOM
     som.importLattice(load._2, load._1(2))
 
     // Clusters the training set in the pre-trained SOM
-    trainingSet.vectors.foreach(x => som.clusterInput(x))
+    trainingSet.vectors.foreach(x => som.clusterInput(x))*/
 
     //TODO this code trains a new SOM
-    /**
+
     // Creates the SOM lattice with specified parameters
-    val som = new Lattice(9, 6, somLearningFactor, somFactorController, somNeighRadius,
-                          somRadiusController, FunctionCollector.euclideanDistance, FunctionCollector.gaussianNeighborhood,
-                          FunctionCollector.exponentialFactorDecrease, FunctionCollector.exponentialRadiusDecrease)
+    val som = new RectLattice(9, 6, somLearningFactor, somTuningFactor, somNeighRadius,
+                              somRadiusController, FunctionCollector.euclideanDistance,
+                              FunctionCollector.gaussianNeighborhood, FunctionCollector.exponentialRadiusDecrease)
 
     // Sets the initial state of the lattice by initializing neurons and setting the distance function
-    som.constructLattice(dimensionality, FunctionCollector.normalizedRandomInit, trainingSet.dimBounds)
+    som.constructLattice(dimensionality)
+    som.normalizedRandomInit(trainingSet.dimBounds)
 
     // SOM's training process
-    som.organizeMap(trainingSet, maxTrainingIter, 0)
+    som.organizeMap(trainingSet, roughIters, tuningIters, 0)
 
-    ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)*/
+    //ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)
 
     som.printSet()
     som.printMap()

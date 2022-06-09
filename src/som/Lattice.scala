@@ -1,37 +1,41 @@
 package som
 
-class Lattice (val width: Int, val height: Int,
-               val learningFactor: Double, val factorController: Double,
-               val neighRadius: Int, val radiusController: Double,
-               distanceFn: (Array[Double], Array[Double]) => Double,
-               neighborhoodFn: (Int, Int, Int, Int, Double, Int) => Double,
-               learningFactorUpdateFn: (Double, Int, Double) => Double,
-               neighborhoodRadiusUpdateFn: (Int, Int, Double) => Double) {
+import scala.util.Random
+
+
+/**
+ * Class to represent a bi-dimensional SOM Lattice
+ *
+ * @param width Width of the lattice
+ * @param height Height of the lattice
+ * @param learningFactor Learning rate of the rough training stage
+ * @param tuningFactor Initial factor for the tuning stage
+ * @param neighRadius Initial neighborhood radius
+ * @param radiusController Controller for the neighborhood radius shrinking
+ * @param distanceFn Function used to determinate the similarity with an input
+ * @param neighborhoodFn Function to control the learning of the BMU's neighbors
+ * @param neighborhoodRadiusUpdateFn Time-based function to update the neighborhood radius
+ */
+abstract class Lattice (val width: Int, val height: Int,
+                        var learningFactor: Double, val tuningFactor: Double,
+                        var neighRadius: Int, val radiusController: Double,
+                        distanceFn: (Array[Double], Array[Double]) => Double,
+                        neighborhoodFn: (Int, Int, Int, Int, Double) => Double,
+                        neighborhoodRadiusUpdateFn: (Int, Int, Double) => Double) {
 
   /*
    * Class fields
    */
   val neurons: Array[Array[Neuron]] = Array.ofDim[Neuron](width, height)
-  private var dimensionality = 0
-  private var tuningStage = false
+  var dimensionality = 0
+  var roughTrainingIters = 0
 
 
   /**
-   * Temporal construction function
+   * Abstract construction function
    * @param vectorDim Dimensionality of the weight vector
-   * @param vectorInitFn Function to initialize the weights
-   * @param dimBounds Set of lower and upper bounds for each dimension
    */
-  def constructLattice (vectorDim: Int, vectorInitFn: (Array[Double], Array[(Double, Double)]) => Unit,
-                        dimBounds: Array[(Double, Double)]): Unit = {
-    //TODO change to abstract when rectangular and hexagonal lattices are implemented
-    dimensionality = vectorDim
-
-    for (i <- 0 until width; j <- 0 until height) {
-      neurons(i)(j) = new Neuron(i, j, new Array[Double](dimensionality), distanceFn)
-      neurons(i)(j).initializeWeights(vectorInitFn, dimBounds)
-    }
-  }
+  def constructLattice (vectorDim: Int): Unit
 
 
   /**
@@ -53,7 +57,7 @@ class Lattice (val width: Int, val height: Int,
 
       // Assigns each weight vector to the neuron in the corresponding position
       for (i <- 0 until width; j <- 0 until height) {
-        neurons(i)(j) = new Neuron(i, j, it.next(), distanceFn)
+        neurons(i)(j) = new Neuron(i, j, it.next(), tuningFactor)
       }
     }
     // An invalid vector set was received
@@ -62,28 +66,70 @@ class Lattice (val width: Int, val height: Int,
 
 
   /**
+   * Initializes the neuron's weight vectors with random values
+   * normalized between the bounds of each input dimension
+   * @param bounds Set of lower and upper bounds for each dimension
+   * @return The created random vector
+   */
+  def normalizedRandomInit (bounds: Array[(Double, Double)]): Unit = {
+    neurons.flatten.foreach(x => {
+      // Generates value for each dimension
+      for (i <- bounds.indices) {
+        val dimMin = bounds(i)._1
+        val dimMax = bounds(i)._2
+
+        x.weights.update(i, (Random.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
+      }
+    })
+  }
+
+
+  /**
    * Self-organization process, which lasts for a maximum number
    * of iterations or until a tolerable QE is reached
    * @param vectorSet Set of vectors that will be used for training
-   * @param maxIter Maximum number of iterations
+   * @param roughIters Maximum number of iterations for rough training stage
+   * @param tuningIters Maximum number of iterations for tuning stage
    * @param tolerance MQE tolerance level
    */
-  def organizeMap (vectorSet: VectorSet, maxIter: Int, tolerance: Double): Unit = {
-    // Train for a predefined number of iterations
+  def organizeMap (vectorSet: VectorSet, roughIters: Int, tuningIters: Int, tolerance: Double): Unit = {
+    roughTrainingIters = roughIters
+    // Rough-train the network for a number of iterations
     //TODO modify loop to add tolerance stop-condition
-    for (t <- 0 until maxIter) {
-      neurons.flatten.foreach(x => x.restartRepresented())
+    for (t <- 0 until roughIters) {
       // Present all inputs to the map
       while (vectorSet.hasNext) {
         // Obtain next vector to analyze
         val currentVector = vectorSet.next
+        // Obtain BMU for current input
+        val bmu = findBMU(currentVector.vector)
 
-        // Applies learning cycle around the found BMU
-        learnFromInput(findBMU(currentVector.vector), currentVector, t)
+        // Applies learning cycle around the BMU
+        neurons.flatten.foreach(x => {
+          roughTraining(bmu.xPos, bmu.yPos, x, currentVector.vector, t)
+        })
       }
-    // Reset iteration process over the inputs
+      // Reset iteration process over the inputs
+      vectorSet.reset()
+      //TODO update iteration-defined learning factor and neighborhood radius after each
+      //            iteration, not in each calculation
+    }
+    // Fixes neighborhood radius to only the adjacent neurons of the BMU
+    neighRadius = 1
+
+    // Tune the network for a number of iterations
+    for (_ <- 0 until tuningIters) {
+      // Present all inputs to the map
+      while (vectorSet.hasNext) {
+        // Obtain next vector to analyze
+        val currentVector = vectorSet.next
+        // Send BMU of current input for tuning
+        tuning(findBMU(currentVector.vector), currentVector.vector)
+      }
+      // Reset iteration process over the inputs
       vectorSet.reset()
     }
+
     // Once the map is organized, present inputs one last time to form clusters
     vectorSet.vectors.foreach(x => clusterInput(x))
   }
@@ -103,97 +149,94 @@ class Lattice (val width: Int, val height: Int,
    * @param input The input vector to find its BMU
    * @return The neuron that has the MQE for that input
    */
-  def findBMU (input: Array[Double]): Neuron = neurons.flatten.minBy[Double](_.distanceTo(input))
+  def findBMU (input: Array[Double]): Neuron = neurons.flatten.minBy[Double](x => distanceFn(x.weightVector, input))
 
 
   /**
-   * Applies corresponding training functions to the BMU
-   * and its neighbors
-   * @param bmu The neuron with the MQE for given input
-   * @param input The input vector
-   * @param epoch Current time value
-   */
-  def learnFromInput (bmu: Neuron, input: InputVector, epoch: Int): Unit = {
-    /**println("BMU at: (" + bmu.xPos + ", " + bmu.yPos + ")")*/
-    //TODO uncomment when differentiation between training stage and tuning stage (radius = 0) is made
-    /**if (tuningStage) {
-      TODO Apply single tuning function
-    }
-    else { */
-      //TODO uncomment when differential learning is implemented (definition of neighborhood) and remove last line
-      /**trainBMU(bmu.weights, input, epoch)
-      bmu.allNeighbors.foreach(n => trainNeighbor(bmu.xPos, bmu.yPos, n, input, epoch))*/
-      neurons.flatten.foreach(x => {
-        trainNeighbor(bmu.xPos, bmu.yPos, x, input.vector, epoch)
-      })
-    /**}*/
-  }
-
-
-  /**
-   * Applies default training function to a BMU
-   * Uses the formula:
-   * wi (t + 1) = wi (t) + a(t) * dist(wi, vi)
+   * Applies the training function to all neurons in the lattice,
+   * applying a neighboring function to reduce the changes as the
+   * neurons get father from the BMU
    *
-   * @param bmuWeights Weight vector of the BMU
-   * @param inputVector Input vector represented by the BMU
-   * @param epoch Current time value
-   */
-  def trainBMU (bmuWeights: Array[Double], inputVector: Array[Double], epoch: Int): Unit = {
-    // Updates each dimension
-    for (i <- bmuWeights.indices) {
-      val currentWeight = bmuWeights(i)
-
-      // Updates current dimension of the weight vector
-      bmuWeights.update(i,  currentWeight + learningFactorUpdateFn(learningFactor, epoch, factorController) *
-                            (currentWeight - inputVector(i)))
-    }
-  }
-
-
-  /**
-   * Applies the training function to a BMU in
-   * the tuning stage, namely, when the neighborhood
-   * radius is 0
-   * @param bmuWeights Weight vector of the BMU
-   * @param inputVector Input vector represented by the BMU
-   * @param epoch Current time value
-   */
-  def tuneBMU (bmuWeights: Array[Double], inputVector: Array[Double], epoch: Int): Unit = {
-    //TODO define tuning function
-  }
-
-
-  /**
-   * Applies the neighborhood function extended training function
-   * to reduce impact of a input vector on a neighbor of the BMU
    * Uses the formula:
    * wi (t + 1) = wi (t) + a(t) * hci(t) * dist(wi, vi)
    *
+   * Where hci is the neighboring function which max value is
+   * reached in the BMU and smoothly reduces with distance
+   *
    * @param bmuX Value of x position of the BMU on the lattice
    * @param bmuY Value of the y position of the BMU on the lattice
-   * @param neighbor BMU's neighbor neuron
+   * @param unit Current neuron to train
    * @param inputVector Input vector represented by the BMU
    * @param epoch Current time value
    */
-  def trainNeighbor (bmuX: Int, bmuY: Int, neighbor: Neuron,
+  def roughTraining(bmuX: Int, bmuY: Int, unit: Neuron,
                     inputVector: Array[Double], epoch: Int): Unit = {
-    //Gets neighbor's weight vector
-    val weights = neighbor.weights
+    //Gets neuron's weight vector
+    val weights = unit.weights
 
     for (i <- weights.indices) {
-      val currentWeight = weights(i)
+      val currentDim = weights(i)
 
       // Updates current dimension of the weight vector
-      weights.update(i,  currentWeight + learningFactorUpdateFn(learningFactor, epoch, factorController) *
-                         neighborhoodFn(bmuX, bmuY, neighbor.xPos, neighbor.yPos,
-                         neighborhoodRadiusUpdateFn(neighRadius, epoch, radiusController), epoch) *
-                         (inputVector(i) - currentWeight))
+      weights.update(i,  currentDim + learningFactor * neighborhoodFn(bmuX, bmuY, unit.xPos,
+                         unit.yPos, neighborhoodRadiusUpdateFn(neighRadius, epoch, radiusController)) *
+                         (inputVector(i) - currentDim))
     }
   }
 
 
-  def somDimensionality: Int = dimensionality
+  /**
+   * Applies the training function to a BMU in the tuning stage,
+   * namely, when only the BMU and its immediate neighbors are updated
+   *
+   * Uses the formula:
+   * wi (t + 1) = wi (t) + a(t) * dist(wi, vi)
+   * for the BMU
+   *
+   * And the formula:
+   * wi (t + 1) = wi (t) + a(t) * hci * dist(wi, vi)
+   * for the neighbors, where hci is invariant in time (only depends on
+   * distance)
+   * t stands for the epochs
+   *
+   * @param bmu Current BMU
+   * @param inputVector Input vector represented by the BMU
+   */
+  def tuning(bmu: Neuron, inputVector: Array[Double]): Unit = {
+    val vector = bmu.weightVector
+    // Updates each dimension
+    for (i <- vector.indices) {
+      val currentDim = vector(i)
+
+      // Updates current dimension of the weight vector
+      vector.update(i, currentDim + bmu.tuningRate * (currentDim - inputVector(i)))
+    }
+    bmu.updateTuningRate()
+
+    // Applies tuning to each neighbor
+    bmu.neighbors.foreach(x => {
+      val weights = x.weights
+
+      for (i <- weights.indices) {
+        val currentDim = weights(i)
+
+        // Updates current dimension of the weight vector
+        weights.update(i, currentDim + x.tuningRate * neighborhoodFn(bmu.xPos, bmu.yPos, x.xPos, x.yPos,
+                          neighRadius) * (inputVector(i) - currentDim))
+      }
+    })
+  }
+
+
+  /**
+   * Updates the learning factor of rough training by inverse-of-the-time
+   * function
+   * @param iter Current iteration
+   * @return Factor for current iteration
+   */
+  def updateFactor(iter: Int): Unit = {
+    learningFactor = learningFactor * (1 - iter/roughTrainingIters)
+  }
 
 
   /**
@@ -209,14 +252,8 @@ class Lattice (val width: Int, val height: Int,
 
 
   /**
-   * So far, it prints how many times each neuron was BMU for the final order
+   * Prints this map distribution, e.g, the neurons with the number of inputs
+   * that represents
    */
-  def printMap (): Unit = {
-    for (i <- 0 until width) {
-      for (j <- 0 until height) {
-        print(neurons(i)(j).matches.size + "\t")
-      }
-      println()
-    }
-  }
+  def printMap (): Unit
 }

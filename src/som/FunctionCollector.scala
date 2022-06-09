@@ -3,25 +3,7 @@ package som
 import scala.util.Random
 
 object FunctionCollector {
-  /**
-   * Creates a vector with random values in the range provided
-   * @param vector Vector to initialize
-   * @param bounds Set of lower and upper bounds for each dimension
-   * @return The created random vector
-   */
-  def normalizedRandomInit (vector: Array[Double], bounds: Array[(Double, Double)]): Unit = {
-    val dim = vector.length
 
-    for (i <- 0 until dim) {
-      val dimMin = bounds(i)._1
-      val dimMax = bounds(i)._2
-
-      vector.update(i, (Random.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
-    }
-    /**print("Vector: ")
-    x.foreach(x => print(x + ", "))
-    println()*/
-  }
 
 
   /**
@@ -44,15 +26,18 @@ object FunctionCollector {
    * @param bmuY Value of the y position of the BMU on the lattice
    * @param neighX Value of x position of the neighbor on the lattice
    * @param neighY Value of the y position of the neighbor on the lattice
-   * @param epoch Current time value
+   * @param neighRadius Current neighborhood radius
    * @return
    */
-  def gaussianNeighborhood (bmuX: Int, bmuY: Int, neighX: Int, neighY: Int, radiusDecrease: Double, epoch: Int): Double = {
+  def gaussianNeighborhood (bmuX: Int, bmuY: Int, neighX: Int, neighY: Int, neighRadius: Double): Double = {
     val distance = math.pow(bmuX - neighX, 2) + math.pow(bmuY - neighY, 2)
 
-    val value  = math.exp( (-distance) / (2 * math.pow(radiusDecrease, 2)))
+    if (distance == 0) 1
+    else {
+      val value = math.exp( (-distance) / (2 * math.pow(neighRadius, 2)))
 
-    if (value.isNaN) 0 else value
+      if (value.isNaN) 0 else value
+    }
   }
 
 

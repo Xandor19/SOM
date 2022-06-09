@@ -2,8 +2,6 @@ package som
 
 import java.util.Formatter
 
-import javax.swing.JPopupMenu.Separator
-
 /**
  * Provides functions to load input vectors from different sources
  */
@@ -122,7 +120,7 @@ object ReaderWriter {
     val writer = new Formatter(path)
 
     // Writes the SOM's distribution data
-    writer.format("%d, %d, %d\n", som.width, som.height, som.somDimensionality)
+    writer.format("%d, %d, %d\n", som.width, som.height, som.dimensionality)
     // Traverses each neuron obtaining its weight vector
     som.neurons.flatten.foreach(n => {
       // Converts this weight vector to a csv line by adding commas between the dimensions

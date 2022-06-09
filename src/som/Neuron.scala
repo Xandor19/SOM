@@ -5,41 +5,13 @@ package som
  * @param xPos This neuron's x coordinate in the grid
  * @param yPos This neuron's y coordinate in the grid
  * @param weightVector This neuron's weight vector
- * @param distanceFn Function to determine the distance between two weight vectors
  */
-class Neuron (val xPos: Int, val yPos: Int, val weightVector: Array[Double],
-              val distanceFn: (Array[Double], Array[Double]) => Double) {
+class Neuron (val xPos: Int, val yPos: Int, val weightVector: Array[Double], var tuningRate: Double) {
   /*
    * Class fields
    */
-  private var vectorDim = weightVector.length
-  private var representedInputs = List.empty[InputVector]
-  private var neighbors = Map.empty[Neuron, Int]
-  /**var bias = 0*/
-
-
-  /**
-   * Encapsulates the application of this neuron's weight vector initialization
-   * function
-   * @param vectorInitFn Function to initialize this neuron's weights vector
-   * @param bounds Set of lower and upper bounds for each dimension
-   */
-  def initializeWeights (vectorInitFn: (Array[Double], Array[(Double, Double)]) => Unit,
-                         bounds: Array[(Double, Double)]): Unit = {
-    vectorInitFn(weightVector, bounds)
-  }
-
-
-  /**
-   * Encapsulates the application of this neuron's specific distance function
-   * to a given input
-   * @param inputVector Vector containing the input data
-   * @return Distance between the input vector and this neuron's weight vector according
-   *         to the defined distanceFn
-   */
-  def distanceTo (inputVector: Array[Double]): Double = {
-    distanceFn(inputVector, weightVector) /**+ bias*/
-  }
+  var representedInputs = List.empty[InputVector]
+  var neighbors = List.empty[Neuron]
 
 
   /**
@@ -69,27 +41,21 @@ class Neuron (val xPos: Int, val yPos: Int, val weightVector: Array[Double],
   }
 
 
-  def matches: List[InputVector] = {
-    representedInputs
-  }
-
-
   def restartRepresented (): Unit = representedInputs = representedInputs.empty
 
 
   /**
-   * Adds received neuron as neighbor of this neuron with the
-   * received neighborhood depth
+   * Adds received neuron as neighbor of this neuron
+   * Neighboring is symmetrical (received neighbor also gets this neuron as neighbor
    * @param neigh Neuron to be added as neighbor
-   * @param depth Neighborhood depth in which the received neuron
-   *              is corresponding to this neuron
    * @return True if the operation was completed, false otherwise
    */
-  def addNeighbor (neigh: Neuron, depth: Int /*, radius: Int*/): Boolean = {
+  def addNeighbor (neigh: Neuron): Boolean = {
     // Checks if not null neuron is already defined as neighbor of this neuron
-    if (neigh != null && !neighbors.keys.exists(x => x.equals(neigh))) {
+    if (neigh != null && !neighbors.contains(neigh)) {
       // Adds received neuron as 1st party neighbor
-      neighbors = neighbors.updated(neigh, depth)
+      neighbors = neighbors.appended(neigh)
+      neigh.addNeighbor(this)
       true
     }
     // Unsuccessful addition
@@ -98,36 +64,10 @@ class Neuron (val xPos: Int, val yPos: Int, val weightVector: Array[Double],
 
 
   /**
-   * Removes all neighbors that are out of range after a
-   * neighborhood reduction, namely, those whose depth level
-   * is greater than or equal to the previous radius
-   * @param oldRadius Previous neighborhood radius
+   * Updates this neuron's tuning factor when is selected as BMU
+   * during the tuning stage
    */
-  def shrinkNeighborhood (oldRadius: Int): Unit = {
-    neighbors = neighbors.filter((c => c._2 < oldRadius))
+  def updateTuningRate (): Unit = {
+    tuningRate = tuningRate / (1 + tuningRate)
   }
-
-
-  /**
-   * Provides the neighbors of this neuron
-   * @return Array containing only the neighbors of the neuron
-   */
-  def allNeighbors: Array[Neuron] = neighbors.keys.toArray
-
-
-  /**
-   * Provides the neighbors with their neighborhood depth
-   * related to this neuron
-   * @return Map containing the neighbors as keys and their depth as values
-   */
-  def neighborsWithDepth: Map[Neuron, Int] = neighbors
-
-
-  /**
-   * Provides the neighbors that are in a given neighborhood depth in
-   * relation to this neuron
-   * @param depth Neighborhood depth of the desired neighbors
-   * @return Array containing only the neighbors in the given depth
-   */
-  def neighborsInDepth (depth: Int) : Array[Neuron] = neighbors.filter(c => c._2 == depth).keys.toArray
 }
