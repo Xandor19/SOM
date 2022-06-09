@@ -4,8 +4,6 @@ import scala.util.Random
 
 object FunctionCollector {
 
-
-
   /**
    * Computes the simple euclidean distance between two vectors
    * @param arr1 1st vector
@@ -15,6 +13,7 @@ object FunctionCollector {
   def euclideanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
     math.sqrt((arr1 zip arr2).map(x => math.pow(x._1 - x._2, 2)).sum)
   }
+
 
   /**
    * Neighborhood function, which gradually reduces the impact of an input
