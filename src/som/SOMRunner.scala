@@ -8,32 +8,37 @@ object SOMRunner {
     val sep = ','
     val trainingSetSize = 0.8
     val somLearningFactor = 0.8
-    val somFactorController = 0.5
+    val somTuningFactor = 0.2
     val somNeighRadius = 5
     val somRadiusController = 0.5
     val roughIters = 1000
-    val tuningIters = 108000
+    val tuningIters = 54000
+    val initSeed = 500
+    val shuffleSeed = 250
 
-    createSOM(path, sep, trainingSetSize, somLearningFactor, somFactorController, somNeighRadius,
-              somRadiusController, roughIters, tuningIters)
+    createSOM(path, sep, trainingSetSize, somLearningFactor, somTuningFactor, somNeighRadius,
+              somRadiusController, roughIters, tuningIters, initSeed, shuffleSeed)
   }
 
 
   def createSOM (datasetPath: String, datasetSeparator: Char, trainingSetProp: Double,
                  somLearningFactor: Double, somTuningFactor: Double, somNeighRadius: Int,
-                 somRadiusController: Double, roughIters: Int, tuningIters: Int): Unit = {
+                 somRadiusController: Double, roughIters: Int, tuningIters: Int, initSeed: Long,
+                 shuffleSeed: Long): Unit = {
     // Loads dataset
     val data = ReaderWriter.loadSetFromCSV(datasetPath, datasetSeparator)
     // Gets inputs' dimensionality
     val dimensionality = data._1
     // Defines training set as the 80% of the dataset
     val trainingSetSize = (data._3.length * trainingSetProp).toInt
-    // Shuffles the input to make random selection of the subsets
-    val shuffledVectors = Random.shuffle(data._3)
+    /** // Shuffles the input to make random selection of the subsets
+    val inputVectors = Random.shuffle(data._3)*/
+    // Takes dataset sequentially
+    val inputVectors = data._3
     // Obtains training set from the shuffled input
-    val trainingSet = new RandomVectorSet(data._2, shuffledVectors.slice(0, trainingSetSize))
+    val trainingSet = new RandomVectorSet(data._2, inputVectors.slice(0, trainingSetSize), shuffleSeed)
     // Obtains test set as the remaining inputs
-    val testSet = new SequentialVectorSet(data._2, shuffledVectors.slice(trainingSetSize, data._3.size))
+    val testSet = new SequentialVectorSet(data._2, inputVectors.slice(trainingSetSize, data._3.size))
 
     //TODO how to define neurons amount and how to distribute it
     trainingSet.findBounds()
@@ -61,7 +66,7 @@ object SOMRunner {
 
     // Sets the initial state of the lattice by initializing neurons and setting the distance function
     som.constructLattice(dimensionality)
-    som.normalizedRandomInit(trainingSet.dimBounds)
+    som.normalizedRandomInit(trainingSet.dimBounds, initSeed)
 
     // SOM's training process
     som.organizeMap(trainingSet, roughIters, tuningIters, 0)
@@ -70,5 +75,11 @@ object SOMRunner {
 
     som.printSet()
     som.printMap()
+    println()
+    println()
+    som.printClassesBalance()
+    println()
+    println()
+    som.printMainClasses()
   }
 }

@@ -6,7 +6,7 @@ package som
  * @param yPos This neuron's y coordinate in the grid
  * @param weightVector This neuron's weight vector
  */
-class Neuron (val xPos: Int, val yPos: Int, val weightVector: Array[Double], var tuningRate: Double) {
+class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double], var tuningRate: Double) {
   /*
    * Class fields
    */
@@ -38,6 +38,19 @@ class Neuron (val xPos: Int, val yPos: Int, val weightVector: Array[Double], var
    */
   def adoptInput (inputVector: InputVector): Unit = {
     representedInputs = representedInputs.appended(inputVector)
+  }
+
+
+  def representedClasses: Map[String, Int] = {
+    representedInputs.map(x => x.classification).foldLeft(Map.empty[String, Int]) {
+      (count, word) => count + (word -> (count.getOrElse(word, 0) + 1))
+    }
+  }
+
+
+  def mainClass: String = {
+    if (representedInputs.nonEmpty) representedClasses.toList.maxBy(x => x._2)._1
+    else "None"
   }
 
 

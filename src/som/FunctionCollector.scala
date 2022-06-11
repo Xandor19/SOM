@@ -28,7 +28,7 @@ object FunctionCollector {
    * @param neighRadius Current neighborhood radius
    * @return
    */
-  def gaussianNeighborhood (bmuX: Int, bmuY: Int, neighX: Int, neighY: Int, neighRadius: Double): Double = {
+  def gaussianNeighborhood (bmuX: Float, bmuY: Float, neighX: Float, neighY: Float, neighRadius: Double): Double = {
     val distance = math.pow(bmuX - neighX, 2) + math.pow(bmuY - neighY, 2)
 
     if (distance == 0) 1

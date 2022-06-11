@@ -7,13 +7,16 @@ import scala.util.Random
  * @param features Definition of each dimension of the vectors
  * @param vectors Input vectors
  */
-class RandomVectorSet (override val features: Array[String], override val vectors: List[InputVector])
+class RandomVectorSet (features: Array[String], vectors: List[InputVector], seed: Long)
                       extends VectorSet (features, vectors) {
 
   /*
    * Class fields
    */
-  private var randomized = Random.shuffle(vectors)
+  val rand = new Random()
+  rand.setSeed(seed)
+
+  var randomized: List[InputVector] = rand.shuffle(vectors)
 
   /**
    * Provides next input vector in the order in which where shuffled
@@ -30,6 +33,6 @@ class RandomVectorSet (override val features: Array[String], override val vector
    */
   override def reset (): Unit = {
     accessIndex = -1
-    randomized = Random.shuffle(vectors)
+    randomized = rand.shuffle(vectors)
   }
 }

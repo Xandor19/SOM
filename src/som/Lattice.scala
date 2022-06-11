@@ -8,7 +8,7 @@ import scala.util.Random
  *
  * @param width Width of the lattice
  * @param height Height of the lattice
- * @param learningFactor Learning rate of the rough training stage
+ * @param initialLearningFactor Learning rate of the rough training stage
  * @param tuningFactor Initial factor for the tuning stage
  * @param neighRadius Initial neighborhood radius
  * @param radiusController Controller for the neighborhood radius shrinking
@@ -17,18 +17,19 @@ import scala.util.Random
  * @param neighborhoodRadiusUpdateFn Time-based function to update the neighborhood radius
  */
 abstract class Lattice (val width: Int, val height: Int,
-                        var learningFactor: Double, val tuningFactor: Double,
+                        val initialLearningFactor: Double, val tuningFactor: Double,
                         var neighRadius: Int, val radiusController: Double,
                         distanceFn: (Array[Double], Array[Double]) => Double,
-                        neighborhoodFn: (Int, Int, Int, Int, Double) => Double,
+                        neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
                         neighborhoodRadiusUpdateFn: (Int, Int, Double) => Double) {
 
   /*
    * Class fields
    */
   val neurons: Array[Array[Neuron]] = Array.ofDim[Neuron](width, height)
-  var dimensionality = 0
-  var roughTrainingIters = 0
+  var learningFactor: Double = initialLearningFactor
+  var dimensionality: Int = 0
+  var roughTrainingIters: Int = 0
 
 
   /**
@@ -71,14 +72,17 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param bounds Set of lower and upper bounds for each dimension
    * @return The created random vector
    */
-  def normalizedRandomInit (bounds: Array[(Double, Double)]): Unit = {
+  def normalizedRandomInit (bounds: Array[(Double, Double)], seed: Long): Unit = {
+    val rand = new Random()
+    rand.setSeed(seed)
+
     neurons.flatten.foreach(x => {
       // Generates value for each dimension
       for (i <- bounds.indices) {
         val dimMin = bounds(i)._1
         val dimMax = bounds(i)._2
 
-        x.weights.update(i, (Random.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
+        x.weights.update(i, (rand.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
       }
     })
   }
@@ -111,8 +115,7 @@ abstract class Lattice (val width: Int, val height: Int,
       }
       // Reset iteration process over the inputs
       vectorSet.reset()
-      //TODO update iteration-defined learning factor and neighborhood radius after each
-      //            iteration, not in each calculation
+      updateFactor(t)
     }
     // Fixes neighborhood radius to only the adjacent neurons of the BMU
     neighRadius = 1
@@ -169,7 +172,7 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param inputVector Input vector represented by the BMU
    * @param epoch Current time value
    */
-  def roughTraining(bmuX: Int, bmuY: Int, unit: Neuron,
+  def roughTraining(bmuX: Float, bmuY: Float, unit: Neuron,
                     inputVector: Array[Double], epoch: Int): Unit = {
     //Gets neuron's weight vector
     val weights = unit.weights
@@ -224,6 +227,7 @@ abstract class Lattice (val width: Int, val height: Int,
         weights.update(i, currentDim + x.tuningRate * neighborhoodFn(bmu.xPos, bmu.yPos, x.xPos, x.yPos,
                           neighRadius) * (inputVector(i) - currentDim))
       }
+      //x.updateTuningRate()
     })
   }
 
@@ -235,7 +239,7 @@ abstract class Lattice (val width: Int, val height: Int,
    * @return Factor for current iteration
    */
   def updateFactor(iter: Int): Unit = {
-    learningFactor = learningFactor * (1 - iter/roughTrainingIters)
+    learningFactor = initialLearningFactor * (1 - iter/roughTrainingIters)
   }
 
 
@@ -256,4 +260,18 @@ abstract class Lattice (val width: Int, val height: Int,
    * that represents
    */
   def printMap (): Unit
+
+
+  /**
+   * Prints each neuron as in printMap but adding how many classes are represented
+   * by it
+   */
+  def printClassesBalance (): Unit
+
+
+  /**
+   * Prints the classes distribution in the map, e.g, the class that is majority in
+   * each neuron
+   */
+  def printMainClasses (): Unit
 }

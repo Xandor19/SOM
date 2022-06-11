@@ -15,7 +15,7 @@ package som
 class RectLattice (width: Int, height: Int, learningFactor: Double, tuningFactor: Double,
                    neighRadius: Int, radiusController: Double,
                    distanceFn: (Array[Double], Array[Double]) => Double,
-                   neighborhoodFn: (Int, Int, Int, Int, Double) => Double,
+                   neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
                    neighborhoodRadiusUpdateFn: (Int, Int, Double) => Double)
                    extends Lattice (width, height, learningFactor, tuningFactor, neighRadius, radiusController,
                                     distanceFn, neighborhoodFn, neighborhoodRadiusUpdateFn) {
@@ -31,13 +31,43 @@ class RectLattice (width: Int, height: Int, learningFactor: Double, tuningFactor
     }
   }
 
+
   /**
-   * So far, it prints how many times each neuron was BMU for the final order
+   * Prints this map distribution, e.g, the neurons with the number of inputs
+   * that represents
    */
-  def printMap (): Unit = {
+  override def printMap (): Unit = {
     for (i <- 0 until width) {
       for (j <- 0 until height) {
         print(neurons(i)(j).representedInputs.size + "\t")
+      }
+      println()
+    }
+  }
+
+
+  /**
+   * Prints each neuron as in printMap but adding how many classes are represented
+   * by it
+   */
+  def printClassesBalance (): Unit = {
+    for (i <- 0 until width) {
+      for (j <- 0 until height) {
+        print(neurons(i)(j).representedInputs.size + " : " + neurons(i)(j).representedClasses.size + "\t")
+      }
+      println()
+    }
+  }
+
+
+  /**
+   * Prints each neuron as in printMap but adding how many classes are represented
+   * by it
+   */
+  override def printMainClasses (): Unit = {
+    for (i <- 0 until width) {
+      for (j <- 0 until height) {
+        printf("%20s\t", neurons(i)(j).mainClass)
       }
       println()
     }
