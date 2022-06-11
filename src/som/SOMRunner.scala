@@ -25,16 +25,18 @@ object SOMRunner {
                  somLearningFactor: Double, somTuningFactor: Double, somNeighRadius: Int,
                  somRadiusController: Double, roughIters: Int, tuningIters: Int, initSeed: Long,
                  shuffleSeed: Long): Unit = {
+    //Random instance
+    val rand = new Random()
+    rand.setSeed(shuffleSeed)
+
     // Loads dataset
     val data = ReaderWriter.loadSetFromCSV(datasetPath, datasetSeparator)
     // Gets inputs' dimensionality
     val dimensionality = data._1
     // Defines training set as the 80% of the dataset
     val trainingSetSize = (data._3.length * trainingSetProp).toInt
-    /** // Shuffles the input to make random selection of the subsets
-    val inputVectors = Random.shuffle(data._3)*/
-    // Takes dataset sequentially
-    val inputVectors = data._3
+    // Shuffles dataset to ensure random segmentation
+    val inputVectors = rand shuffle data._3
     // Obtains training set from the shuffled input
     val trainingSet = new RandomVectorSet(data._2, inputVectors.slice(0, trainingSetSize), shuffleSeed)
     // Obtains test set as the remaining inputs
