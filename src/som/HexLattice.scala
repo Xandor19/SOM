@@ -66,8 +66,7 @@ class HexLattice (width: Int, height: Int, learningFactor: Double, tuningFactor:
 
 
   /**
-   * Prints each neuron as in printMap but adding how many classes are represented
-   * by it
+   * Prints each neuron as in printMap but adding how many classes it represents
    */
   def printClassesBalance (): Unit = {
     for (i <- 0 until width) {
@@ -82,8 +81,8 @@ class HexLattice (width: Int, height: Int, learningFactor: Double, tuningFactor:
 
 
   /**
-   * Prints each neuron as in printMap but adding how many classes are represented
-   * by it
+   * Prints the name of the class that each neuron represents (the class from which
+   * the neuron has most instances)
    */
   override def printMainClasses (): Unit = {
     for (i <- 0 until width) {

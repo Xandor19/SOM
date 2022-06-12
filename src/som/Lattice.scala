@@ -99,6 +99,20 @@ abstract class Lattice (val width: Int, val height: Int,
   def organizeMap (vectorSet: VectorSet, roughIters: Int, tuningIters: Int, tolerance: Double): Unit = {
     roughTrainingIters = roughIters
     // Rough-train the network for a number of iterations
+    roughTraining(vectorSet, roughIters)
+
+    // Fixes neighborhood radius to only the adjacent neurons of the BMU
+    neighRadius = 1
+
+    // Tune the network for a number of iterations
+    tuning(vectorSet, tuningIters)
+
+    // Once the map is organized, present inputs one last time to form clusters
+    vectorSet.vectors.foreach(x => clusterInput(x))
+  }
+
+
+  def roughTraining (vectorSet: VectorSet, roughIters: Int): Unit = {
     //TODO modify loop to add tolerance stop-condition
     for (t <- 0 until roughIters) {
       // Present all inputs to the map
@@ -110,31 +124,31 @@ abstract class Lattice (val width: Int, val height: Int,
 
         // Applies learning cycle around the BMU
         neurons.flatten.foreach(x => {
-          roughTraining(bmu.xPos, bmu.yPos, x, currentVector.vector, t)
+          applySingleTraining(bmu._1.xPos, bmu._1.yPos, x, currentVector.vector, t)
         })
       }
       // Reset iteration process over the inputs
       vectorSet.reset()
       updateFactor(t)
     }
-    // Fixes neighborhood radius to only the adjacent neurons of the BMU
-    neighRadius = 1
+  }
 
-    // Tune the network for a number of iterations
+
+  def tuning (vectorSet: VectorSet, tuningIters: Int): Unit = {
     for (_ <- 0 until tuningIters) {
       // Present all inputs to the map
       while (vectorSet.hasNext) {
         // Obtain next vector to analyze
         val currentVector = vectorSet.next
+        // Obtain BMY for current input
+        val bmu = findBMU(currentVector.vector)
+
         // Send BMU of current input for tuning
-        tuning(findBMU(currentVector.vector), currentVector.vector)
+        applySingleTuning(bmu._1, currentVector.vector)
       }
       // Reset iteration process over the inputs
       vectorSet.reset()
     }
-
-    // Once the map is organized, present inputs one last time to form clusters
-    vectorSet.vectors.foreach(x => clusterInput(x))
   }
 
 
@@ -142,7 +156,7 @@ abstract class Lattice (val width: Int, val height: Int,
    * Assigns the received input to a neuron of this map
    * @param inputVector Input vector to cluster in the map
    */
-  def clusterInput (inputVector: InputVector): Unit = findBMU(inputVector.vector).adoptInput(inputVector)
+  def clusterInput (inputVector: InputVector): Unit = findBMU(inputVector.vector)._1.adoptInput(inputVector)
 
 
   /**
@@ -152,7 +166,9 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param input The input vector to find its BMU
    * @return The neuron that has the MQE for that input
    */
-  def findBMU (input: Array[Double]): Neuron = neurons.flatten.minBy[Double](x => distanceFn(x.weightVector, input))
+  def findBMU (input: Array[Double]): (Neuron, Double) = {
+    neurons.flatten.map(x => (x, distanceFn(input, x.weightVector))).minBy(x => x._2)
+  }
 
 
   /**
@@ -172,8 +188,8 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param inputVector Input vector represented by the BMU
    * @param epoch Current time value
    */
-  def roughTraining(bmuX: Float, bmuY: Float, unit: Neuron,
-                    inputVector: Array[Double], epoch: Int): Unit = {
+  def applySingleTraining(bmuX: Float, bmuY: Float, unit: Neuron,
+                          inputVector: Array[Double], epoch: Int): Unit = {
     //Gets neuron's weight vector
     val weights = unit.weights
 
@@ -205,7 +221,7 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param bmu Current BMU
    * @param inputVector Input vector represented by the BMU
    */
-  def tuning(bmu: Neuron, inputVector: Array[Double]): Unit = {
+  def applySingleTuning(bmu: Neuron, inputVector: Array[Double]): Unit = {
     val vector = bmu.weightVector
     // Updates each dimension
     for (i <- vector.indices) {
@@ -227,7 +243,7 @@ abstract class Lattice (val width: Int, val height: Int,
         weights.update(i, currentDim + x.tuningRate * neighborhoodFn(bmu.xPos, bmu.yPos, x.xPos, x.yPos,
                           neighRadius) * (inputVector(i) - currentDim))
       }
-      //x.updateTuningRate()
+      x.updateTuningRate()
     })
   }
 
@@ -263,15 +279,14 @@ abstract class Lattice (val width: Int, val height: Int,
 
 
   /**
-   * Prints each neuron as in printMap but adding how many classes are represented
-   * by it
+   * Prints each neuron as in printMap but adding how many classes it represents
    */
   def printClassesBalance (): Unit
 
 
   /**
-   * Prints the classes distribution in the map, e.g, the class that is majority in
-   * each neuron
+   * Prints the name of the class that each neuron represents (the class from which
+   * the neuron has most instances)
    */
   def printMainClasses (): Unit
 }
