@@ -34,7 +34,7 @@ abstract class Lattice (val width: Int, val height: Int,
 
   /**
    * Abstract construction function
-   * @param vectorDim Dimensionality of the weight vector
+   * @param vectorDim Dimensionality of the weights vectors
    */
   def constructLattice (vectorDim: Int): Unit
 
@@ -156,7 +156,10 @@ abstract class Lattice (val width: Int, val height: Int,
    * Assigns the received input to a neuron of this map
    * @param inputVector Input vector to cluster in the map
    */
-  def clusterInput (inputVector: InputVector): Unit = findBMU(inputVector.vector)._1.adoptInput(inputVector)
+  def clusterInput (inputVector: InputVector): Unit = {
+    val bmu = findBMU(inputVector.vector)
+    bmu._1.adoptInput (inputVector, bmu._2)
+  }
 
 
   /**

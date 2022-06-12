@@ -20,14 +20,21 @@ class RectLattice (width: Int, height: Int, learningFactor: Double, tuningFactor
                    extends Lattice (width, height, learningFactor, tuningFactor, neighRadius, radiusController,
                                     distanceFn, neighborhoodFn, neighborhoodRadiusUpdateFn) {
 
+  /**
+   * Lattice construction function
+   * @param vectorDim Dimensionality of the weights vectors
+   */
   override def constructLattice (vectorDim: Int): Unit = {
     dimensionality = vectorDim
 
+    // Initializes every neuron in the lattice
     for (i <- 0 until width; j <- 0 until height) {
       neurons(i)(j) = new Neuron(i, j, new Array[Double](dimensionality), tuningFactor)
 
-      if (i > 0) neurons(i)(j).addNeighbor(neurons(i - 1)(j))
-      if (j > 0) neurons(i)(j).addNeighbor(neurons(i)(j - 1))
+      // Assigns left-side adjacent nodes as neighbors of the current neuron
+      // As neurons implement symmetrical neighboring, its only necessary to add 2 neighbors manually
+      if (i > 0) neurons(i)(j) addNeighbor neurons(i - 1)(j)
+      if (j > 0) neurons(i)(j) addNeighbor neurons(i)(j - 1)
     }
   }
 

@@ -10,7 +10,7 @@ class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double],
   /*
    * Class fields
    */
-  var representedInputs = List.empty[InputVector]
+  var representedInputs = List.empty[(InputVector, Double)]
   var neighbors = List.empty[Neuron]
 
 
@@ -36,24 +36,59 @@ class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double],
    * Adds the received input as represented by this neuron (it's the input's BMU)
    * @param inputVector Vector to be represented by this neuron
    */
-  def adoptInput (inputVector: InputVector): Unit = {
-    representedInputs = representedInputs.appended(inputVector)
+  def adoptInput (inputVector: InputVector, qe: Double): Unit = {
+    representedInputs = representedInputs.appended((inputVector, qe))
   }
 
 
+  /**
+   * Obtains the most similar input, e.g, input with a local MQE from those
+   * represented by this neuron
+   * @return
+   */
+  def bestMatch: (InputVector, Double) = {
+    representedInputs.minBy(x => x._2)
+  }
+
+
+  /**
+   * Obtains the average of quantification errors with which this
+   * neuron represents its inputs
+   * @return Value of the average QE
+   */
+  def averageQE: Double = {
+    representedInputs.map(x => x._2).sum / representedInputs.size
+  }
+
+
+  /**
+   * Counts how many classes (e.g, how many different "classification" string attribute)
+   * and how many instances of each one this neuron represents
+   * @return Map with the classes' names as the keys and the amount of inputs as values
+   */
   def representedClasses: Map[String, Int] = {
-    representedInputs.map(x => x.classification).foldLeft(Map.empty[String, Int]) {
+    // Counts how many inputs are for each class
+    representedInputs.map(x => x._1.classification).foldLeft(Map.empty[String, Int]) {
       (count, word) => count + (word -> (count.getOrElse(word, 0) + 1))
     }
   }
 
 
+  /**
+   * Obtains the most frequent class of those represented in this neuron
+   * @return Name of the most frequent class
+   */
   def mainClass: String = {
+    // Looks for the most frequent class
     if (representedInputs.nonEmpty) representedClasses.toList.maxBy(x => x._2)._1
+    // This neuron does not represent any input
     else "None"
   }
 
 
+  /**
+   * Restarts the represented inputs of this neuron
+   */
   def restartRepresented (): Unit = representedInputs = representedInputs.empty
 
 

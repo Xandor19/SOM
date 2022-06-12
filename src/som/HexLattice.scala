@@ -21,30 +21,37 @@ class HexLattice (width: Int, height: Int, learningFactor: Double, tuningFactor:
                                    distanceFn, neighborhoodFn, neighborhoodRadiusUpdateFn) {
 
   /**
-   *
-   * @param vectorDim Dimensionality of the weight vector
+   * Lattice construction function
+   * @param vectorDim Dimensionality of the weights vectors
    */
   override def constructLattice(vectorDim: Int): Unit = {
     dimensionality = vectorDim
 
+    // Sin and cos of 60º, used to coordinate conversion
     val c60 = math.cos(math.Pi / 3)
     val s60 = math.sin(math.Pi / 3)
 
+    // Initializes every neuron in the lattice
     for (i <- 0 until width; j <- 0 until height) {
       if (i % 2 == 0) {
+        // Transformation formula por even row
         neurons(i)(j) = new Neuron(j, i * s60.toFloat, new Array[Double](dimensionality), tuningFactor)
 
-        if (j > 0) neurons(i)(j).addNeighbor(neurons(i)(j - 1))
-        if (i > 0 && j > 0) neurons(i)(j).addNeighbor(neurons(i - 1)(j - 1))
-        if (i > 0) neurons(i)(j).addNeighbor(neurons(i - 1)(j))
+        // Assigns left-side adjacent nodes as neighbors of the current neuron using the even rows distribution
+        // As neurons implement symmetrical neighboring, its only necessary to add 2 neighbors manually
+        if (j > 0) neurons(i)(j) addNeighbor neurons(i)(j - 1)
+        if (i > 0 && j > 0) neurons(i)(j) addNeighbor neurons(i - 1)(j - 1)
+        if (i > 0) neurons(i)(j) addNeighbor neurons(i - 1)(j)
       }
       else {
-        //neurons(i)(j) = new SomNode(j + c60, i *s60, d, Array.ofDim[Double](_).map(_ => rand.nextDouble))
+        // Transformation formula for odd row
         neurons(i)(j) = new Neuron(j + c60.toFloat, i *s60.toFloat, new Array[Double](dimensionality), tuningFactor)
 
-        if (j > 0) neurons(i)(j).addNeighbor(neurons(i)(j-1))
-        if (i > 0) neurons(i)(j).addNeighbor(neurons(i-1)(j))
-        if (i > 0 && j < height - 1) neurons(i)(j).addNeighbor(neurons(i-1)(j+1))
+        // Assigns left-side adjacent nodes as neighbors of the current neuron using the odd rows distribution
+        // As neurons implement symmetrical neighboring, its only necessary to add 2 neighbors manually
+        if (j > 0) neurons(i)(j) addNeighbor neurons(i)(j-1)
+        if (i > 0) neurons(i)(j) addNeighbor neurons(i-1)(j)
+        if (i > 0 && j < height - 1) neurons(i)(j) addNeighbor neurons(i-1)(j+1)
       }
     }
   }
