@@ -30,6 +30,7 @@ abstract class Lattice (val width: Int, val height: Int,
   var learningFactor: Double = initialLearningFactor
   var dimensionality: Int = 0
   var roughTrainingIters: Int = 0
+  var mapAvgMQE: Double = 0
 
 
   /**
@@ -94,9 +95,9 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param vectorSet Set of vectors that will be used for training
    * @param roughIters Maximum number of iterations for rough training stage
    * @param tuningIters Maximum number of iterations for tuning stage
-   * @param tolerance MQE tolerance level
+   * @param avgMQE Average MQE tolerance level for tuning stage
    */
-  def organizeMap (vectorSet: VectorSet, roughIters: Int, tuningIters: Int, tolerance: Double): Unit = {
+  def organizeMap (vectorSet: VectorSet, roughIters: Int, tuningIters: Int, avgMQE: Double): Unit = {
     roughTrainingIters = roughIters
     // Rough-train the network for a number of iterations
     roughTraining(vectorSet, roughIters)
@@ -105,15 +106,21 @@ abstract class Lattice (val width: Int, val height: Int,
     neighRadius = 1
 
     // Tune the network for a number of iterations
-    tuning(vectorSet, tuningIters)
+    tuning(vectorSet, tuningIters, avgMQE)
 
     // Once the map is organized, present inputs one last time to form clusters
     vectorSet.vectors.foreach(x => clusterInput(x))
   }
 
 
+  /**
+   * Rough training stage of the map: globally orders the network from a initial
+   * (possibly random) state
+   * @param vectorSet The set used for the training
+   * @param roughIters Number of iters that the stage will last
+   */
   def roughTraining (vectorSet: VectorSet, roughIters: Int): Unit = {
-    //TODO modify loop to add tolerance stop-condition
+    //TODO modify loop to add variation-driven stop-condition
     for (t <- 0 until roughIters) {
       // Present all inputs to the map
       while (vectorSet.hasNext) {
@@ -134,8 +141,20 @@ abstract class Lattice (val width: Int, val height: Int,
   }
 
 
-  def tuning (vectorSet: VectorSet, tuningIters: Int): Unit = {
-    for (_ <- 0 until tuningIters) {
+  /**
+   * Tuning stage of the map: after general order has been achieved, it refines
+   * the network for a maximum number of iters or until an acceptable average
+   * MQE has been reached
+   * @param vectorSet The set used for the training
+   * @param tuningIters The maximum number of iters in the stage
+   * @param avMQETol The tolerable average MQE of the map
+   */
+  def tuning (vectorSet: VectorSet, tuningIters: Int, avMQETol: Double): Unit = {
+    var i = 0
+
+    do {
+      mapAvgMQE = 0
+
       // Present all inputs to the map
       while (vectorSet.hasNext) {
         // Obtain next vector to analyze
@@ -143,12 +162,20 @@ abstract class Lattice (val width: Int, val height: Int,
         // Obtain BMY for current input
         val bmu = findBMU(currentVector.vector)
 
+        // Accumulates the MQE of each BMU
+        mapAvgMQE += bmu._2
+
         // Send BMU of current input for tuning
         applySingleTuning(bmu._1, currentVector.vector)
       }
+      // Obtains average MQE
+      mapAvgMQE /= vectorSet.vectors.size
+
       // Reset iteration process over the inputs
       vectorSet.reset()
-    }
+
+      i += 1
+    } while (mapAvgMQE > avMQETol && i < tuningIters)
   }
 
 
