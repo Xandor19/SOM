@@ -1,5 +1,7 @@
 package som
 
+import java.util.concurrent.TimeUnit
+
 import scala.util.Random
 
 
@@ -31,6 +33,7 @@ abstract class Lattice (val width: Int, val height: Int,
   var dimensionality: Int = 0
   var roughTrainingIters: Int = 0
   var mapAvgMQE: Double = 0
+  var mapMQEDeviation: Double = 0
 
 
   /**
@@ -67,25 +70,8 @@ abstract class Lattice (val width: Int, val height: Int,
   }
 
 
-  /**
-   * Initializes the neuron's weight vectors with random values
-   * normalized between the bounds of each input dimension
-   * @param bounds Set of lower and upper bounds for each dimension
-   * @return The created random vector
-   */
-  def normalizedRandomInit (bounds: Array[(Double, Double)], seed: Long): Unit = {
-    val rand = new Random()
-    rand.setSeed(seed)
-
-    neurons.flatten.foreach(x => {
-      // Generates value for each dimension
-      for (i <- bounds.indices) {
-        val dimMin = bounds(i)._1
-        val dimMax = bounds(i)._2
-
-        x.weights.update(i, (rand.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
-      }
-    })
+  def initLattice (baseSet: VectorSet, initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit, randomSeed: Long = 0): Unit = {
+    initFn(neurons, baseSet, randomSeed)
   }
 
 
@@ -218,7 +204,7 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param inputVector Input vector represented by the BMU
    * @param epoch Current time value
    */
-  def applySingleTraining(bmuX: Float, bmuY: Float, unit: Neuron,
+  def applySingleTraining (bmuX: Float, bmuY: Float, unit: Neuron,
                           inputVector: Array[Double], epoch: Int): Unit = {
     //Gets neuron's weight vector
     val weights = unit.weights
@@ -251,7 +237,7 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param bmu Current BMU
    * @param inputVector Input vector represented by the BMU
    */
-  def applySingleTuning(bmu: Neuron, inputVector: Array[Double]): Unit = {
+  def applySingleTuning (bmu: Neuron, inputVector: Array[Double]): Unit = {
     val vector = bmu.weightVector
     // Updates each dimension
     for (i <- vector.indices) {
@@ -284,8 +270,25 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param iter Current iteration
    * @return Factor for current iteration
    */
-  def updateFactor(iter: Int): Unit = {
+  def updateFactor (iter: Int): Unit = {
     learningFactor = initialLearningFactor * (1 - iter/roughTrainingIters)
+  }
+
+
+  /**
+   * Updates the average MQE of the network by accumulating the QE of each input
+   * represented in the map with its BMU
+   */
+  def updateAvMQE (): Unit = {
+    mapAvgMQE =  neurons.flatten.flatMap(x => x.representedInputs.map(y => y._2)).sum /
+                 neurons.flatten.map(z => z.representedInputs.size).sum
+  }
+
+
+  def updateMQEDeviation (): Unit = {
+    mapMQEDeviation = math.sqrt(neurons.flatten.filter(n => n.representedInputs.nonEmpty).
+                      flatMap(x => x.representedInputs.map(y => math.pow(y._2 - mapAvgMQE, 2))).sum /
+                      (neurons.flatten.map(z => z.representedInputs.size).sum - 1))
   }
 
 

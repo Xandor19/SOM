@@ -57,7 +57,8 @@ class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double],
    * @return Value of the average QE
    */
   def averageQE: Double = {
-    representedInputs.map(x => x._2).sum / representedInputs.size
+    if (representedInputs.nonEmpty) representedInputs.map(x => x._2).sum / representedInputs.size
+    else 0
   }
 
 

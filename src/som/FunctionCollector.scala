@@ -5,6 +5,51 @@ import scala.util.Random
 object FunctionCollector {
 
   /**
+   * Initializes the neuron's weight vectors with random values
+   * between the bounds of each input dimension
+   * @param neurons Neurons to initialize weights
+   * @param vectorSet Input domain for initialization
+   * @param seed Seed for random initialization
+   */
+  def randomInit (neurons: Array[Array[Neuron]], vectorSet: VectorSet, seed: Long): Unit = {
+    // Obtains bounds of the input's dimensions
+    val bounds = vectorSet.dimBounds
+    val rand = new Random()
+    rand.setSeed(seed)
+
+    neurons.flatten.foreach(x => {
+      // Generates value for each dimension
+      for (i <- bounds.indices) x.weights.update(i, rand.between(bounds(i)._1, bounds(i)._2))
+    })
+  }
+
+
+  /**
+   * Initializes the neuron's weight vectors with random values
+   * normalized between the bounds of each input dimension
+   * @param neurons Neurons to initialize weights
+   * @param vectorSet Input domain for initialization
+   * @param seed Seed for random initialization
+   */
+  def normalizedRandomInit (neurons: Array[Array[Neuron]], vectorSet: VectorSet, seed: Long): Unit = {
+    // Obtains bounds of the input's dimensions
+    val bounds = vectorSet.dimBounds
+    val rand = new Random()
+    rand.setSeed(seed)
+
+    neurons.flatten.foreach(x => {
+      // Generates value for each dimension
+      for (i <- bounds.indices) {
+        val dimMin = bounds(i)._1
+        val dimMax = bounds(i)._2
+
+        x.weights.update(i, (rand.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
+      }
+    })
+  }
+
+
+  /**
    * Computes the simple euclidean distance between two vectors
    * @param arr1 1st vector
    * @param arr2 2do vector

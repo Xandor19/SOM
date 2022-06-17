@@ -2,8 +2,8 @@ package som
 
 /**
  * Class to represent a set of input vectors in a tabular view
- * * Provides methods to iterate over this vectors in an ordered
- * * or randomized way
+ * Provides methods to iterate over this vectors in an ordered
+ * or randomized way
  * @param features Definition of each dimension of the vectors
  * @param vectors Input vectors
  */
@@ -12,9 +12,11 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
   /*
    * Class fields
    */
-  val dimensionality:Int = features.length - 1
-  val dimBounds: Array[(Double, Double)] = new Array[(Double, Double)](dimensionality)
+  val dimensionality: Int = features.length - 1
+  val sampleSize: Int = vectors.size
+  protected val bounds: Array[(Double, Double)] = new Array[(Double, Double)](dimensionality)
   protected var accessIndex: Int = -1
+  protected var boundsFound = false
 
 
   /**
@@ -40,20 +42,26 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
         }
       })
       // Sets this dimension's minimum and maximum values
-      dimBounds.update(i, (minInDim, maxInDim))
+      bounds.update(i, (minInDim, maxInDim))
     }
+    boundsFound = true
   }
 
 
   /**
    * Normalizes this set's vectors
+   * Dimension's bounds must be found with findBounds method
+   * before using this method
    */
   def normalize (): Unit = {
+    // Checks wetter the dimensions's bound have been found
+    if (!boundsFound) findBounds()
+
     vectors.foreach(x => {
       // Applies normalization for each dimension individually
       for (i <- 0 until dimensionality) {
-        val currentLow = dimBounds(i)._1
-        val currentHigh = dimBounds(i)._2
+        val currentLow = bounds(i)._1
+        val currentHigh = bounds(i)._2
 
         // Normalization formula
         x.vector.update(i, (x.vector(i) - currentLow) / (currentHigh - currentLow))
@@ -86,6 +94,18 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
       println(x.classification)
     })
     println(vectors.length)
+  }
+
+
+  /**
+   * Provides the dimension's bounds of this set
+   * @return Array of tuples (Double, Double) with the lower and
+   *         upper bounds respectively
+   */
+  def dimBounds: Array[(Double, Double)] = {
+    if (!boundsFound) findBounds()
+
+    bounds
   }
 
 
