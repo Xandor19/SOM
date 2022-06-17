@@ -96,6 +96,8 @@ abstract class Lattice (val width: Int, val height: Int,
 
     // Once the map is organized, present inputs one last time to form clusters
     vectorSet.vectors.foreach(x => clusterInput(x))
+
+    updateMQEDeviation()
   }
 
 
@@ -285,10 +287,24 @@ abstract class Lattice (val width: Int, val height: Int,
   }
 
 
+  /**
+   * Updates the MQE standard deviation of the network by accumulating the difference
+   * between the QE of each input with its BMU and the average MQE
+   */
   def updateMQEDeviation (): Unit = {
     mapMQEDeviation = math.sqrt(neurons.flatten.filter(n => n.representedInputs.nonEmpty).
                       flatMap(x => x.representedInputs.map(y => math.pow(y._2 - mapAvgMQE, 2))).sum /
                       (neurons.flatten.map(z => z.representedInputs.size).sum - 1))
+  }
+
+
+  /**
+   * Provides the threshold above which an instance mus be considered abnormal
+   * Threshold is obtained as 3 times the upper deviation of the MQE
+   * @return Value of the threshold
+   */
+  def normalityThreshold: Double = {
+    3 * (mapAvgMQE + mapMQEDeviation)
   }
 
 
@@ -322,4 +338,49 @@ abstract class Lattice (val width: Int, val height: Int,
    * the neuron has most instances)
    */
   def printMainClasses (): Unit
+
+
+  /**
+   * Provides the distribution of the neurons in this lattice
+   * @return LatticeDistribution constant for this lattice's distribution
+   */
+  def latticeType: Int
+}
+
+
+/**
+ * Factory object for creating lattices with the specified distribution
+ */
+object Factory {
+  /**
+   * Creates a lattice of the received distribution with the specified parameters
+   * @param latDistrib
+   * @param width
+   * @param height
+   * @param learningFactor
+   * @param tuningFactor
+   * @param neighRadius
+   * @param somRadiusController
+   * @param distanceFn
+   * @param neighborhoodFn
+   * @param radiusDecreaseFn
+   * @return A initial state lattice of the given distribution
+   */
+  def createLattice (latDistrib: Int, width: Int, height: Int, learningFactor: Double, tuningFactor: Double,
+                     neighRadius: Int, somRadiusController: Double, distanceFn: (Array[Double], Array[Double]) => Double,
+                     neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
+                     radiusDecreaseFn: (Int, Int, Double) => Double): Lattice = {
+
+    if (latDistrib == LatticeDistribution.squared) {
+      // Rectangular lattice
+      new RectLattice(width, height, learningFactor, tuningFactor, neighRadius, somRadiusController,
+        distanceFn, neighborhoodFn, radiusDecreaseFn)
+    }
+    else if (latDistrib == LatticeDistribution.hexagonal) {
+      // Hexagonal lattice
+      new HexLattice(width, height, learningFactor, tuningFactor, neighRadius, somRadiusController,
+        distanceFn, neighborhoodFn, radiusDecreaseFn)
+    }
+    else null
+  }
 }

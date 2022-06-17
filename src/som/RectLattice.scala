@@ -56,7 +56,7 @@ class RectLattice (width: Int, height: Int, learningFactor: Double, tuningFactor
   /**
    * Prints each neuron as in printMap but adding how many classes it represents
    */
-  def printClassesBalance (): Unit = {
+  override def printClassesBalance (): Unit = {
     for (i <- 0 until width) {
       for (j <- 0 until height) {
         print(neurons(i)(j).representedInputs.size + " : " + neurons(i)(j).representedClasses.size + "\t")
@@ -78,4 +78,11 @@ class RectLattice (width: Int, height: Int, learningFactor: Double, tuningFactor
       println()
     }
   }
+
+
+  /**
+   * Provides the distribution of the neurons in this lattice
+   * @return LatticeDistribution constant for this lattice's distribution
+   */
+  override def latticeType: Int = LatticeDistribution.squared
 }
