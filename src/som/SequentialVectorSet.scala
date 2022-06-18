@@ -13,7 +13,6 @@ class SequentialVectorSet (override val features: Array[String], override val ve
    * @return Vector in current index
    */
   override def next: InputVector = {
-    accessIndex += 1
     vectors(accessIndex)
   }
 

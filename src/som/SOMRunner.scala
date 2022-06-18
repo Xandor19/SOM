@@ -8,29 +8,87 @@ object SOMRunner {
   def main(args: Array[String]): Unit = {
     val path = "/mnt/D80C76380C76122C/Mis Programas/Repos/SOM/Datasets/iris.csv"
     val sep = ','
-    val trainingSetProp = 0.8
+    val trainingSetProp = 0.6
     val latDistrib = LatticeDistribution.squared
-    val somLearningFactor = 0.8
+    val somLearningFactor = 0.85
     val somTuningFactor = 0.2
     val somNeighRadius = 5
     val somRadiusController = 0.5
-    val roughIters = 500
+    val roughIters = 1000
     val tuningIters = 54000
     val tolerance = 0
     val initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit = FunctionCollector.normalizedRandomInit
     val distanceFn: (Array[Double], Array[Double]) => Double = FunctionCollector.euclideanDistance
     val neighborhoodFn: (Float, Float, Float, Float, Double) => Double = FunctionCollector.gaussianNeighborhood
     val radiusFn: (Int, Int, Double) => Double = FunctionCollector.exponentialRadiusDecrease
-    val initSeed = 78
-    val shuffleSeed = 43
+    val initSeed = 500
+    val shuffleSeed = 250
+    val multiple = true
+    val experiments = 30
+
+    if (multiple) multipleTests(path, sep, trainingSetProp, latDistrib, somLearningFactor, somTuningFactor,
+                                somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance, initFn,
+                                distanceFn, neighborhoodFn, radiusFn, experiments)
+
+    else singleTest(path, sep, trainingSetProp, latDistrib, somLearningFactor, somTuningFactor,
+                    somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance, initFn,
+                    distanceFn, neighborhoodFn, radiusFn, initSeed, shuffleSeed)
+  }
+
+
+  def singleTest (path: String, sep: Char, trainingSetProp: Double, latDistrib: Int, somLearningFactor: Double,
+                  somTuningFactor: Double, somNeighRadius: Int, somRadiusController: Double, roughIters: Int,
+                  tuningIters: Int, tolerance: Double, initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit,
+                  distanceFn: (Array[Double], Array[Double]) => Double,
+                  neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
+                  radiusFn: (Int, Int, Double) => Double, initSeed: Long, shuffleSeed: Long): Unit = {
 
     val initTime = System.nanoTime()
     flowFromScratch(path, sep, trainingSetProp, latDistrib, somLearningFactor, somTuningFactor, somNeighRadius,
-              somRadiusController, roughIters, tuningIters, tolerance, initFn, distanceFn, neighborhoodFn, radiusFn,
-      initSeed, shuffleSeed)
+                    somRadiusController, roughIters, tuningIters, tolerance, initFn, distanceFn, neighborhoodFn,
+                    radiusFn, initSeed, shuffleSeed)
     val endTime = System.nanoTime()
     val seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
     println("Total elapsed time: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+  }
+
+
+  def multipleTests (path: String, sep: Char, trainingSetProp: Double, latDistrib: Int, somLearningFactor: Double,
+                     somTuningFactor: Double, somNeighRadius: Int, somRadiusController: Double, roughIters: Int,
+                     tuningIters: Int, tolerance: Double, initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit,
+                     distanceFn: (Array[Double], Array[Double]) => Double,
+                     neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
+                     radiusFn: (Int, Int, Double) => Double, experiments: Int): Unit = {
+
+    var accum = List.empty[(Double, Double, Int, Int, Double, Double, Double)]
+
+    val expInitTime = System.nanoTime()
+    for (i <- 1 to experiments) {
+      val initTime = System.nanoTime()
+      val results = flowFromScratch(path, sep, trainingSetProp, latDistrib, somLearningFactor, somTuningFactor,
+                                    somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance, initFn,
+                                    distanceFn, neighborhoodFn, radiusFn, Random.nextInt(), Random.nextInt(), i)
+      val endTime = System.nanoTime()
+      val seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
+      println("Total elapsed time for test " + i + ": " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+
+      accum = accum.appended(results)
+    }
+    val expEndTime = System.nanoTime()
+    val seconds = TimeUnit.SECONDS.convert(expEndTime - expInitTime, TimeUnit.NANOSECONDS)
+    println("Total experiment time: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+
+    val trainAvgMQE = accum.map(x => x._1).sum / experiments
+    val trainAvgDeviation = accum.map(x => x._2).sum / experiments
+    val avgRight = accum.map(x => x._3).sum / experiments.toDouble
+    val avgWrong = accum.map(x => x._4).sum / experiments.toDouble
+    val avgPrec = accum.map(x => x._5).sum / experiments
+    val avgMQE = accum.map(x => x._6).sum / experiments
+    val avgDeviation = accum.map(x => x._7).sum / experiments
+
+    println("Test finished with average of:\n" + avgRight + " successful\n" + avgWrong + " unsuccessful\n" + avgPrec +
+            "% of precision\n" + avgMQE + " average MQE\n" + avgDeviation + " standard deviation\nTraining average" +
+            "MQE was " + trainAvgMQE + " with a standard deviation of " + trainAvgDeviation)
   }
 
 
@@ -59,7 +117,8 @@ object SOMRunner {
                        somRadiusController: Double, roughIters: Int, tuningIters: Int, tolerance: Double,
                        initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit, distanceFn: (Array[Double], Array[Double]) => Double,
                        neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
-                       radiusDecreaseFn: (Int, Int, Double) => Double, initSeed: Long, shuffleSeed: Long): Unit = {
+                       radiusDecreaseFn: (Int, Int, Double) => Double, initSeed: Long, shuffleSeed: Long, test: Int = 0):
+                      (Double, Double, Int, Int, Double, Double, Double) = {
 
     val sets = loadSets(datasetPath, datasetSeparator, trainingSetProp, shuffleSeed)
     val trainingSet = sets._1
@@ -75,9 +134,46 @@ object SOMRunner {
                              somRadiusController, roughIters, tuningIters, tolerance, initFn, distanceFn,
                              neighborhoodFn, radiusDecreaseFn, trainingSet, trainingSet.dimensionality, initSeed)
 
-    printSOMState(som)
+    //printSOMState(som)
+
+    val trainingAvMQE = som.mapAvgMQE
+    val trainingMQEDeviation = som.mapMQEDeviation
+
+    println("Training for test " + test + " ended with average MQE of " + trainingAvMQE + " and standard deviation of " +
+            trainingMQEDeviation)
+
+    testSet.normalize()
+
+    var right = 0
+    var wrong = 0
+
+    while (testSet.hasNext) {
+      val vector = testSet.next
+      val pair = som.clusterInput(vector)
+      val neuronClass = som.neurons(pair._1)(pair._2).mainClass
+
+      if (vector.classification == neuronClass) {
+        //println("Input of class " + vector.classification + " correctly clustered in a " + neuronClass + " type neuron")
+        right += 1
+      }
+      else {
+        //println("Input of class " + vector.classification + " incorrectly clustered in a " + neuronClass + " type neuron")
+        wrong += 1
+      }
+    }
+    val precision = (right / testSet.sampleSize.toDouble) * 100
+
+    println("Test " + test + ": " + right + " inputs were classified correctly and " + wrong +
+            " incorrectly for a precision of " + precision + "%")
+
+    som.updateAvMQE()
+    som.updateMQEDeviation()
+
+    println("Test " + test + " average MQE is " + som.mapAvgMQE + " with a standard deviation of " + som.mapMQEDeviation)
 
     //ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)
+
+    (trainingAvMQE, trainingMQEDeviation, right, wrong, precision, som.mapAvgMQE, som.mapMQEDeviation)
   }
 
 
@@ -100,30 +196,30 @@ object SOMRunner {
     val data = ReaderWriter.loadSetFromCSV(datasetPath, datasetSeparator)
     var endTime = System.nanoTime()
     var seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    println("File loaded in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    //println("File loaded in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
     // Gets inputs' dimensionality
     val dimensionality = data._1
-    println("Dataset dimensionality is " + dimensionality)
+    //println("Dataset dimensionality is " + dimensionality)
 
     // Defines training set as the 80% of the dataset
     val trainingSetSize = (data._3.length * trainingSetProp).toInt
-    println("Training set size: " + trainingSetSize)
+    //println("Training set size: " + trainingSetSize)
 
     // Shuffles dataset to ensure random segmentation
     initTime = System.nanoTime()
     val inputVectors = rand shuffle data._3
     endTime = System.nanoTime()
     seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    println("Inputs shuffled in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    //println("Inputs shuffled in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
     // Obtains training set from the shuffled input
     val trainingSet = new RandomVectorSet(data._2, inputVectors.slice(0, trainingSetSize), shuffleSeed)
-    println("Training set created")
+    //println("Training set created with size " + trainingSet.sampleSize)
 
     // Obtains test set as the remaining inputs
     val testSet = new SequentialVectorSet(data._2, inputVectors.slice(trainingSetSize, data._3.size))
-    println("Test set created")
+    //println("Test set created with size " + testSet.sampleSize)
 
     (trainingSet, testSet)
   }
@@ -140,14 +236,14 @@ object SOMRunner {
     trainingSet.findBounds()
     var endTime = System.nanoTime()
     var seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    println("Dimensionality bounds found in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    //println("Dimensionality bounds found in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
     // Normalizes the input space
     initTime = System.nanoTime()
     trainingSet.normalize()
     endTime = System.nanoTime()
     seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    println("Input space normalized in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    //println("Input space normalized in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
   }
 
 
@@ -188,7 +284,7 @@ object SOMRunner {
     som.constructLattice(dimensionality)
     var endTime = System.nanoTime()
     var seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    println("Lattice created in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    //println("Lattice created in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
     // Initializes the weight vectors with the specified function
     initTime = System.nanoTime()
@@ -196,14 +292,14 @@ object SOMRunner {
     //som.initLattice(trainingSet, FunctionCollector.randomInit, initSeed)
     endTime = System.nanoTime()
     seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    println("Lattice initialized in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    //println("Lattice initialized in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
     // SOM's training process
     initTime = System.nanoTime()
     som.organizeMap(trainingSet, roughIters, tuningIters, tolerance)
     endTime = System.nanoTime()
     seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    println("SOM trained in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    //println("SOM trained in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
     som
   }
@@ -233,20 +329,20 @@ object SOMRunner {
    */
   def printSOMState (som: Lattice): Unit = {
     som.printSet()
-    println()
-    println()
+    //println()
+    //println()
     som.printMap()
-    println()
-    println()
+    //println()
+    //println()
     som.printClassesBalance()
-    println()
-    println()
+    //println()
+    //println()
     som.printMainClasses()
-    println()
-    println()
+    //println()
+    //println()
 
-    println("AVG MQE: " + som.mapAvgMQE)
-    println("MQE standard deviation: " + som.mapMQEDeviation)
-    println("Normality threshold: " + som.normalityThreshold)
+    //println("AVG MQE: " + som.mapAvgMQE)
+    //println("MQE standard deviation: " + som.mapMQEDeviation)
+    //println("Normality threshold: " + som.normalityThreshold)
   }
 }

@@ -77,7 +77,7 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
   def hasNext: Boolean = {
     accessIndex += 1
 
-    if (accessIndex < vectors.size) true
+    if (accessIndex < sampleSize) true
     else false
   }
 

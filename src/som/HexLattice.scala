@@ -107,4 +107,14 @@ class HexLattice (width: Int, height: Int, learningFactor: Double, tuningFactor:
    * @return LatticeDistribution constant for this lattice's distribution
    */
   override def latticeType: Int = LatticeDistribution.hexagonal
+
+
+  /**
+   *
+   * TODO implement
+   * @param xPos X coordinate in the specific distribution
+   * @param yPos Y coordinate in the specific distribution
+   * @return (Int, Int) pair with the X and Y coordinates as array indices
+   */
+  override def neuronCoord (xPos: Float, yPos: Float): (Int, Int) = (0, 0)
 }

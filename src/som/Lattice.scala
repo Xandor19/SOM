@@ -170,10 +170,16 @@ abstract class Lattice (val width: Int, val height: Int,
   /**
    * Assigns the received input to a neuron of this map
    * @param inputVector Input vector to cluster in the map
+   * @return (Int, Int) pair with the indices of the BMU in the
+   *         array
    */
-  def clusterInput (inputVector: InputVector): Unit = {
+  def clusterInput (inputVector: InputVector): (Int, Int) = {
+    // Find the BMU and cluster the input in it
     val bmu = findBMU(inputVector.vector)
     bmu._1.adoptInput (inputVector, bmu._2)
+
+    // Indices of the BMU
+    neuronCoord (bmu._1.xPos, bmu._1.yPos)
   }
 
 
@@ -345,6 +351,16 @@ abstract class Lattice (val width: Int, val height: Int,
    * @return LatticeDistribution constant for this lattice's distribution
    */
   def latticeType: Int
+
+
+  /**
+   * Obtains the location in the 2-dimensional array of a neuron
+   * depending of the coordinate system of the lattice distribution
+   * @param xPos X coordinate in the specific distribution
+   * @param yPos Y coordinate in the specific distribution
+   * @return (Int, Int) pair with the X and Y coordinates as array indices
+   */
+  def neuronCoord (xPos: Float, yPos: Float): (Int, Int)
 }
 
 
