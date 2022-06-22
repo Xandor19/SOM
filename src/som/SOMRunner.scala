@@ -420,7 +420,7 @@ object SOMRunner {
     val width = if (neurons - math.pow(height, 2) > height / 2) height + 1
                 //else if (neurons - math.pow(height, 2) > height * 2) { height += 1; height }
                 else height
-    //val somNeighRadius = width / 2
+    //val somNeighRadius = width / 2 + 1
 
     // Prepares training set
     prepareTraining(trainingSet, normalize)
