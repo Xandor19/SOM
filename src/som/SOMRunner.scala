@@ -5,166 +5,443 @@ import java.util.concurrent.TimeUnit
 import scala.util.Random
 
 object SOMRunner {
+
   def main(args: Array[String]): Unit = {
-    val path = "/mnt/D80C76380C76122C/Mis Programas/Repos/SOM/Datasets/iris.csv"
+    var path = "/mnt/D80C76380C76122C/Mis Programas/Repos/SOM/Datasets/iris.csv"
     val sep = ','
-    val trainingSetProp = 0.6
-    val latDistrib = LatticeDistribution.squared
-    val somLearningFactor = 0.85
-    val somTuningFactor = 0.2
-    val somNeighRadius = 5
-    val somRadiusController = 0.5
-    val roughIters = 1000
-    val tuningIters = 54000
-    val tolerance = 0
-    val initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit = FunctionCollector.normalizedRandomInit
-    val distanceFn: (Array[Double], Array[Double]) => Double = FunctionCollector.euclideanDistance
-    val neighborhoodFn: (Float, Float, Float, Float, Double) => Double = FunctionCollector.gaussianNeighborhood
-    val radiusFn: (Int, Int, Double) => Double = FunctionCollector.exponentialRadiusDecrease
-    val initSeed = 500
-    val shuffleSeed = 250
-    val multiple = true
-    val experiments = 30
+    val exportPath = "/home/xandor19/export.csv"
+    val trainingSetProp = 0.8
+    var latDistrib = LatticeDistribution.squared
+    var somLearningFactor = 0.8
+    var somTuningFactor = 0.2
+    var somNeighRadius = 5
+    var somRadiusController = 0.5
+    var roughIters = 5000
+    var tuningIters = 0
+    var tolerance = 0
+    var initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit = FunctionCollector.normalizedRandomInit
+    var initName = "Norm rand"
+    val normalize = true
+    var distanceFn: (Array[Double], Array[Double]) => Double = FunctionCollector.euclideanDistance
+    var distName = "Euc"
+    var neighborhoodFn: (Float, Float, Float, Float, Double) => Double = FunctionCollector.gaussianNeighborhood
+    var neighName = "Gauss"
+    var radiusFn: (Int, Int, Double) => Double = FunctionCollector.exponentialRadiusDecrease
+    var radiusDecName = "Exp"
+    var initSeed = 500
+    var shuffleSeed = 250
+    var multiple = false
+    var experiments = 30
 
-    if (multiple) multipleTests(path, sep, trainingSetProp, latDistrib, somLearningFactor, somTuningFactor,
-                                somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance, initFn,
-                                distanceFn, neighborhoodFn, radiusFn, experiments)
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
 
-    else singleTest(path, sep, trainingSetProp, latDistrib, somLearningFactor, somTuningFactor,
-                    somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance, initFn,
-                    distanceFn, neighborhoodFn, radiusFn, initSeed, shuffleSeed)
+    somLearningFactor = 0.6
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+    tuningIters = 27000
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.8
+    somTuningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somTuningFactor = 0.2
+    somLearningFactor = 0.8
+    roughIters = 500
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    distanceFn = FunctionCollector.manhattanDistance
+    distName = "Manh"
+    roughIters = 5000
+    tuningIters = 0
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+    tuningIters = 27000
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.8
+    somTuningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somTuningFactor = 0.2
+    somLearningFactor = 0.8
+    roughIters = 500
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    distanceFn = FunctionCollector.euclideanDistance
+    distName = "Euc"
+    neighborhoodFn = FunctionCollector.proportionalNeighborhood
+    neighName = "Prop"
+    tuningIters = 0
+    roughIters = 5000
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+    tuningIters = 27000
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.8
+    somTuningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somTuningFactor = 0.2
+    somLearningFactor = 0.8
+    roughIters = 500
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    distanceFn = FunctionCollector.manhattanDistance
+    distName = "Manh"
+    roughIters = 5000
+    tuningIters = 0
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+    tuningIters = 27000
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.8
+    somTuningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.6
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    somLearningFactor = 0.4
+
+    ReaderWriter.exportExperimentResult(exportPath, sep, List(multipleTests(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      experiments)))
+
+    /*ReaderWriter.exportExperimentResult(exportPath, sep, List(singleTest(path, sep, trainingSetProp, latDistrib,
+      somLearningFactor, somTuningFactor, somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance,
+      initFn, initName, normalize, distanceFn, distName, neighborhoodFn, neighName, radiusFn, radiusDecName,
+      initSeed, shuffleSeed)*/
+
   }
 
 
+  /**
+   * Performs a single experiment over a new trained SOM
+   * @return ExperimentData object with the results of this experiment
+   */
   def singleTest (path: String, sep: Char, trainingSetProp: Double, latDistrib: Int, somLearningFactor: Double,
                   somTuningFactor: Double, somNeighRadius: Int, somRadiusController: Double, roughIters: Int,
                   tuningIters: Int, tolerance: Double, initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit,
-                  distanceFn: (Array[Double], Array[Double]) => Double,
-                  neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
-                  radiusFn: (Int, Int, Double) => Double, initSeed: Long, shuffleSeed: Long): Unit = {
+                  initName: String, normalize: Boolean, distanceFn: (Array[Double], Array[Double]) => Double,
+                  distName: String, neighborhoodFn: (Float, Float, Float, Float, Double) => Double, neighName: String,
+                  radiusFn: (Int, Int, Double) => Double, radiusDecName: String, initSeed: Long, shuffleSeed: Long):
+                  ExperimentData = {
 
+    // Obtain dataset used
+    val datasetName = path.substring(path.lastIndexOf("/") + 1)
+
+    // Train and test a new SOM over the dataset
     val initTime = System.nanoTime()
-    flowFromScratch(path, sep, trainingSetProp, latDistrib, somLearningFactor, somTuningFactor, somNeighRadius,
-                    somRadiusController, roughIters, tuningIters, tolerance, initFn, distanceFn, neighborhoodFn,
-                    radiusFn, initSeed, shuffleSeed)
+    val results = flowFromScratch(path, sep, trainingSetProp, normalize, latDistrib, somLearningFactor, somTuningFactor,
+                                  somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance, initFn,
+                                  distanceFn, neighborhoodFn, radiusFn, initSeed, shuffleSeed)
     val endTime = System.nanoTime()
     val seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
     println("Total elapsed time: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+
+    // Collect this experiment's results
+    new ExperimentData(datasetName, trainingSetProp, latDistrib, results._1, results._2, somNeighRadius,
+                       somLearningFactor, somTuningFactor, initName, distName, neighName, radiusDecName,
+                       somRadiusController, roughIters, tuningIters, tolerance, 1, initSeed, shuffleSeed,
+                       results._3, results._4, results._5, results._6, results._7, results._8, results._9)
   }
 
 
+  /**
+   * Perform a series of experiments over the specified number of new SOMs
+   * @return ExperimentData object with the averages of the results of the experiments
+   */
   def multipleTests (path: String, sep: Char, trainingSetProp: Double, latDistrib: Int, somLearningFactor: Double,
                      somTuningFactor: Double, somNeighRadius: Int, somRadiusController: Double, roughIters: Int,
                      tuningIters: Int, tolerance: Double, initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit,
-                     distanceFn: (Array[Double], Array[Double]) => Double,
-                     neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
-                     radiusFn: (Int, Int, Double) => Double, experiments: Int): Unit = {
+                     initName: String, normalize: Boolean, distanceFn: (Array[Double], Array[Double]) => Double,
+                     distName: String, neighborhoodFn: (Float, Float, Float, Float, Double) => Double, neighName: String,
+                     radiusFn: (Int, Int, Double) => Double, radiusDecName: String, experiments: Int): ExperimentData = {
 
-    var accum = List.empty[(Double, Double, Int, Int, Double, Double, Double)]
+    // Obtains dataset used
+    val datasetName = path.substring(path.lastIndexOf("/") + 1)
+    // List for store each run's data
+    var accum = List.empty[(Int, Int, Double, Double, Int, Int, Double, Double, Double)]
 
+    // Performs received amount of experiments
     val expInitTime = System.nanoTime()
     for (i <- 1 to experiments) {
+      // Train and test a new SOM over the dataset
       val initTime = System.nanoTime()
-      val results = flowFromScratch(path, sep, trainingSetProp, latDistrib, somLearningFactor, somTuningFactor,
+      val results = flowFromScratch(path, sep, trainingSetProp, normalize, latDistrib, somLearningFactor, somTuningFactor,
                                     somNeighRadius, somRadiusController, roughIters, tuningIters, tolerance, initFn,
                                     distanceFn, neighborhoodFn, radiusFn, Random.nextInt(), Random.nextInt(), i)
       val endTime = System.nanoTime()
       val seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
       println("Total elapsed time for test " + i + ": " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
+      // Saves this model's results
       accum = accum.appended(results)
     }
     val expEndTime = System.nanoTime()
     val seconds = TimeUnit.SECONDS.convert(expEndTime - expInitTime, TimeUnit.NANOSECONDS)
     println("Total experiment time: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
-    val trainAvgMQE = accum.map(x => x._1).sum / experiments
-    val trainAvgDeviation = accum.map(x => x._2).sum / experiments
-    val avgRight = accum.map(x => x._3).sum / experiments.toDouble
-    val avgWrong = accum.map(x => x._4).sum / experiments.toDouble
-    val avgPrec = accum.map(x => x._5).sum / experiments
-    val avgMQE = accum.map(x => x._6).sum / experiments
-    val avgDeviation = accum.map(x => x._7).sum / experiments
+    // Obtains averages of all the model's results
+    val width = accum.head._1
+    val height = accum.head._2
+    val trainAvgMQE = accum.map(x => x._3).sum / experiments
+    val trainAvgDeviation = accum.map(x => x._4).sum / experiments
+    val avgRight = accum.map(x => x._5).sum / experiments.toDouble
+    val avgWrong = accum.map(x => x._6).sum / experiments.toDouble
+    val avgPrec = accum.map(x => x._7).sum / experiments
+    val avgMQE = accum.map(x => x._8).sum / experiments
+    val avgDeviation = accum.map(x => x._9).sum / experiments
 
     println("Test finished with average of:\n" + avgRight + " successful\n" + avgWrong + " unsuccessful\n" + avgPrec +
             "% of precision\n" + avgMQE + " average MQE\n" + avgDeviation + " standard deviation\nTraining average" +
             "MQE was " + trainAvgMQE + " with a standard deviation of " + trainAvgDeviation)
+
+    new ExperimentData(datasetName, trainingSetProp, latDistrib, width, height, somNeighRadius,
+                       somLearningFactor, somTuningFactor, initName, distName, neighName,
+                       radiusDecName, somRadiusController, roughIters, tuningIters, tolerance,
+                       experiments, -1, -1, trainAvgMQE,
+                       trainAvgDeviation, avgRight, avgWrong, avgPrec, avgMQE, avgDeviation)
   }
 
 
   /**
-   * Control flow for creating an training a new SOM
-   * @param datasetPath
-   * @param datasetSeparator
-   * @param trainingSetProp
-   * @param latDistrib
-   * @param somLearningFactor
-   * @param somTuningFactor
-   * @param somNeighRadius
-   * @param somRadiusController
-   * @param roughIters
-   * @param tuningIters
-   * @param tolerance
-   * @param initFn
-   * @param distanceFn
-   * @param neighborhoodFn
-   * @param radiusDecreaseFn
-   * @param initSeed
-   * @param shuffleSeed
+   * Control flow for creating, training and testing a new SOM using specified proportions of the dataset
+   * @return Results of the created model
    */
-  def flowFromScratch (datasetPath: String, datasetSeparator: Char, trainingSetProp: Double,
+  def flowFromScratch (datasetPath: String, datasetSeparator: Char, trainingSetProp: Double, normalize: Boolean,
                        latDistrib: Int, somLearningFactor: Double, somTuningFactor: Double, somNeighRadius: Int,
                        somRadiusController: Double, roughIters: Int, tuningIters: Int, tolerance: Double,
                        initFn: (Array[Array[Neuron]], VectorSet, Long) => Unit, distanceFn: (Array[Double], Array[Double]) => Double,
                        neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
                        radiusDecreaseFn: (Int, Int, Double) => Double, initSeed: Long, shuffleSeed: Long, test: Int = 0):
-                      (Double, Double, Int, Int, Double, Double, Double) = {
+                      (Int, Int, Double, Double, Int, Int, Double, Double, Double) = {
 
+    // Loads the main dataset and splits it into training and test sets
     val sets = loadSets(datasetPath, datasetSeparator, trainingSetProp, shuffleSeed)
     val trainingSet = sets._1
     val testSet = sets._2
+    val neurons = math.sqrt(trainingSet.sampleSize) * 5
+    var height = math.sqrt(neurons).toInt
+    val width = if (neurons - math.pow(height, 2) > height / 2) height + 1
+                //else if (neurons - math.pow(height, 2) > height * 2) { height += 1; height }
+                else height
+    //val somNeighRadius = width / 2
 
-    prepareTraining(trainingSet)
-
-    val width = 9
-    val height = 6
+    // Prepares training set
+    prepareTraining(trainingSet, normalize)
 
     // Train a new SOM
     val som = createSOM(latDistrib, width, height, somLearningFactor, somTuningFactor, somNeighRadius,
                              somRadiusController, roughIters, tuningIters, tolerance, initFn, distanceFn,
                              neighborhoodFn, radiusDecreaseFn, trainingSet, trainingSet.dimensionality, initSeed)
 
+    // Shows the state of the SOM after training
     //printSOMState(som)
 
+    // Obtains resulting average MQE and its standard of deviation of the training
     val trainingAvMQE = som.mapAvgMQE
     val trainingMQEDeviation = som.mapMQEDeviation
 
     println("Training for test " + test + " ended with average MQE of " + trainingAvMQE + " and standard deviation of " +
             trainingMQEDeviation)
 
-    testSet.normalize()
-
-    var right = 0
-    var wrong = 0
-
-    while (testSet.hasNext) {
-      val vector = testSet.next
-      val pair = som.clusterInput(vector)
-      val neuronClass = som.neurons(pair._1)(pair._2).mainClass
-
-      if (vector.classification == neuronClass) {
-        //println("Input of class " + vector.classification + " correctly clustered in a " + neuronClass + " type neuron")
-        right += 1
-      }
-      else {
-        //println("Input of class " + vector.classification + " incorrectly clustered in a " + neuronClass + " type neuron")
-        wrong += 1
-      }
-    }
-    val precision = (right / testSet.sampleSize.toDouble) * 100
-
-    println("Test " + test + ": " + right + " inputs were classified correctly and " + wrong +
-            " incorrectly for a precision of " + precision + "%")
+    // Tests the clustering capacities of the SOM
+    val results = clusterTest(som, testSet, normalize)
 
     som.updateAvMQE()
     som.updateMQEDeviation()
@@ -173,17 +450,14 @@ object SOMRunner {
 
     //ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)
 
-    (trainingAvMQE, trainingMQEDeviation, right, wrong, precision, som.mapAvgMQE, som.mapMQEDeviation)
+    (width, height, trainingAvMQE, trainingMQEDeviation, results._1, results._2, results._3, som.mapAvgMQE,
+     som.mapMQEDeviation)
   }
 
 
   /**
    * Loads the dataset into a training and a test set
-   * @param datasetPath
-   * @param datasetSeparator
-   * @param trainingSetProp
-   * @param shuffleSeed
-   * @return
+   * @return The training and test sets as two VectorSet objects
    */
   def loadSets (datasetPath: String, datasetSeparator: Char, trainingSetProp: Double, shuffleSeed: Long):
                (VectorSet, VectorSet) = {
@@ -228,9 +502,8 @@ object SOMRunner {
   /**
    * Prepares the dataset for training
    * //TODO parameters for training configuration
-   * @param trainingSet
    */
-  def prepareTraining (trainingSet: VectorSet): Unit = {
+  def prepareTraining (trainingSet: VectorSet, normalize: Boolean): Unit = {
     // Obtains the input's dimensions bounds
     var initTime = System.nanoTime()
     trainingSet.findBounds()
@@ -238,12 +511,14 @@ object SOMRunner {
     var seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
     //println("Dimensionality bounds found in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
-    // Normalizes the input space
-    initTime = System.nanoTime()
-    trainingSet.normalize()
-    endTime = System.nanoTime()
-    seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    //println("Input space normalized in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    if (normalize) {
+      // Normalizes the input space
+      initTime = System.nanoTime()
+      trainingSet.normalize()
+      endTime = System.nanoTime()
+      seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
+      //println("Input space normalized in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    }
   }
 
 
@@ -277,7 +552,7 @@ object SOMRunner {
                  initSeed: Long): Lattice = {
     // Creates the SOM lattice with given distribution
     var initTime = System.nanoTime()
-    val som = Factory.createLattice(latDistrib, width, height, somLearningFactor, somTuningFactor, somNeighRadius,
+    val som = LatticeFactory.createLattice(latDistrib, width, height, somLearningFactor, somTuningFactor, somNeighRadius,
                                     somRadiusController, distanceFn, neighborhoodFn, radiusDecreaseFn)
 
     // Sets the initial state of the lattice by initializing neurons and setting the distance function
@@ -306,6 +581,51 @@ object SOMRunner {
 
 
   /**
+   * Presents the test set to the received SOM and evaluates its clustering precision
+   * @return Values for correct and incorrect classifications and the precision
+   */
+  def clusterTest (som: Lattice, testSet: VectorSet, normalize: Boolean): (Int, Int, Double) = {
+    var right = 0
+    var wrong = 0
+
+    // Normalizes input space if required
+    if (normalize) testSet.normalize()
+
+    // Presents the test instances to the map
+    val initTime = System.nanoTime()
+    while (testSet.hasNext) {
+      val vector = testSet.next
+      // Clusters the test input onto the map
+      val pair = som.clusterInput(vector)
+      // Obtains the class represented by the input's BMU
+      val neuronClass = som.neurons(pair._1)(pair._2).mainClass
+
+      if (vector.classification == neuronClass) {
+        // Correct classification
+        //println("Input of class " + vector.classification + " correctly clustered in a " + neuronClass + " type neuron")
+        right += 1
+      }
+      else {
+        // Incorrect classification
+        //println("Input of class " + vector.classification + " incorrectly clustered in a " + neuronClass + " type neuron")
+        wrong += 1
+      }
+    }
+    val endTime = System.nanoTime()
+    val seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
+    //println("Tests completed in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+
+    // Obtains test precision
+    val precision = (right / testSet.sampleSize.toDouble) * 100
+
+    println("Test " + test + ": " + right + " inputs were classified correctly and " + wrong +
+      " incorrectly for a precision of " + precision + "%")
+
+    (right, wrong, precision)
+  }
+
+
+  /**
    * Loads a pre-trained SOM from an external source
    */
   def loadSOM (somPath: String, somSeparator: Char): Unit = {
@@ -325,7 +645,6 @@ object SOMRunner {
 
   /**
    * Summarizes the state of a given SOM
-   * @param som The SOM
    */
   def printSOMState (som: Lattice): Unit = {
     som.printSet()

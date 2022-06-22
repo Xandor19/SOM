@@ -1,5 +1,6 @@
 package som
 
+import java.io.FileNotFoundException
 import java.util.Formatter
 
 /**
@@ -128,5 +129,34 @@ object ReaderWriter {
       writer.flush()
     })
     writer.close()
+  }
+
+
+  /**
+   * Exports the results of a experiment to a csv
+   * @param path
+   * @param sep
+   * @param data
+   */
+  def exportExperimentResult (path: String, sep: Char, data: List[ExperimentData]): Unit = {
+    var existing = List.empty[String]
+    var prev = true
+
+    try {
+      existing = existing appendedAll loadCSV(path, sep)
+    }
+    catch {
+      case _: FileNotFoundException => prev = false
+    }
+    val writer = new Formatter(path)
+
+    if (!prev) writer.format("%s\n", data.head.attributes)
+
+    existing = existing appendedAll data.map(x => x.data)
+
+    existing.foreach(x => {
+      writer.format("%s\n", x)
+      writer.flush()
+    })
   }
 }

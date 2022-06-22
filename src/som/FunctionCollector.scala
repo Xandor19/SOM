@@ -56,12 +56,34 @@ object FunctionCollector {
    * @return
    */
   def euclideanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
-    math.sqrt((arr1 zip arr2).map(x => math.pow(x._1 - x._2, 2)).sum)
+    math.sqrt(squaredEuclideanDistance(arr1, arr2))
   }
 
 
   /**
-   * Neighborhood function, which gradually reduces the impact of an input
+   * Computes the manhattan distance between two vectors
+   * @param arr1 1st vector
+   * @param arr2 2do vector
+   * @return
+   */
+  def manhattanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
+    (arr1 zip arr2).map(x => math.abs(x._1 - x._2)).sum
+  }
+
+
+  /**
+   * Computes the squared euclidean distance between two vectors
+   * @param arr1 1st vector
+   * @param arr2 2do vector
+   * @return
+   */
+  def squaredEuclideanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
+    (arr1 zip arr2).map(x => math.pow(x._1 - x._2, 2)).sum
+  }
+
+
+  /**
+   * Neighborhood function which gradually reduces the impact of an input
    * on the neuron depending of its relative position to the BMU
    * Uses the gaussian function:
    * exp(squaredDistance(BMU, neighbor) / 2 * currentRadius**2
@@ -71,10 +93,10 @@ object FunctionCollector {
    * @param neighX Value of x position of the neighbor on the lattice
    * @param neighY Value of the y position of the neighbor on the lattice
    * @param neighRadius Current neighborhood radius
-   * @return
+   * @return Effect of the function in the neuron learning
    */
   def gaussianNeighborhood (bmuX: Float, bmuY: Float, neighX: Float, neighY: Float, neighRadius: Double): Double = {
-    val distance = math.pow(bmuX - neighX, 2) + math.pow(bmuY - neighY, 2)
+    val distance = squaredEuclideanDistance(Array(bmuX, bmuY), Array(neighX, neighY))
 
     if (distance == 0) 1
     else {
@@ -82,6 +104,42 @@ object FunctionCollector {
 
       if (value.isNaN) 0 else value
     }
+  }
+
+
+  /**
+   * Neighborhood function which reduces the impact of an input on the neuron depending
+   * on the inverse proportionality of the distance between the neuron and the BMU
+   * @param bmuX Value of x position of the BMU on the lattice
+   * @param bmuY Value of the y position of the BMU on the lattice
+   * @param neighX Value of x position of the neighbor on the lattice
+   * @param neighY Value of the y position of the neighbor on the lattice
+   * @param neighRadius Current neighborhood radius
+   * @return Effect of the function in the neuron learning
+   */
+  def proportionalNeighborhood (bmuX: Float, bmuY: Float, neighX: Float, neighY: Float, neighRadius: Double): Double = {
+    val distance = squaredEuclideanDistance(Array(bmuX, bmuY), Array(neighX, neighY))
+
+    if (distance == 0) 1
+    else 1 / distance
+  }
+
+
+  /**
+   * Neighborhood function which reduces the impact of an input on the neuron depending
+   * on the inverse of the distance between the neuron and the BMU
+   * @param bmuX Value of x position of the BMU on the lattice
+   * @param bmuY Value of the y position of the BMU on the lattice
+   * @param neighX Value of x position of the neighbor on the lattice
+   * @param neighY Value of the y position of the neighbor on the lattice
+   * @param neighRadius Current neighborhood radius
+   * @return Effect of the function in the neuron learning
+   */
+  def inverseNeighborhood (bmuX: Float, bmuY: Float, neighX: Float, neighY: Float, neighRadius: Double): Double = {
+    val distance = squaredEuclideanDistance(Array(bmuX, bmuY), Array(neighX, neighY))
+
+    if (distance == 0) 1
+    else 1 - distance / neighRadius
   }
 
 

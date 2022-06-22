@@ -279,7 +279,7 @@ abstract class Lattice (val width: Int, val height: Int,
    * @return Factor for current iteration
    */
   def updateFactor (iter: Int): Unit = {
-    learningFactor = initialLearningFactor * (1 - iter/roughTrainingIters)
+    learningFactor = initialLearningFactor * (1 - iter/roughTrainingIters.toDouble)
   }
 
 
@@ -367,7 +367,7 @@ abstract class Lattice (val width: Int, val height: Int,
 /**
  * Factory object for creating lattices with the specified distribution
  */
-object Factory {
+object LatticeFactory {
   /**
    * Creates a lattice of the received distribution with the specified parameters
    * @param latDistrib
@@ -399,4 +399,13 @@ object Factory {
     }
     else null
   }
+}
+
+
+/**
+ * Lattice distributions codes for creation
+ */
+object LatticeDistribution {
+  val squared = 0
+  val hexagonal = 1
 }
