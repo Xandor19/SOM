@@ -2,7 +2,61 @@ package som
 
 import scala.util.Random
 
+/**
+ * Contains multiple functions (distance, neighboring, radius decrease)
+ * used by the SOM
+ * Provides factory methods for obtaining the desired function
+ */
 object FunctionCollector {
+
+  /**
+   * Provides a specific initialization function given its id
+   * @param init The initialization function's id
+   * @return Desired initialization function or null if the id does not exists
+   */
+  def initFactory (init: Int): (Array[Array[Neuron]], VectorSet, Long) => Unit = {
+    if (init == InitFns.randomInit) randomInit
+    else if (init == InitFns.normalizedRandomInit) normalizedRandomInit
+    else null
+  }
+
+
+  /**
+   * Provides a specific distance function given its id
+   * @param dist The distance function's id
+   * @return Desired distance function or null if the id does not exists
+   */
+  def distanceFactory (dist: Int): (Array[Double], Array[Double]) => Double = {
+    if (dist == DistanceFns.simpleEuclidean) euclideanDistance
+    else if (dist == DistanceFns.squaredEuclidean) squaredEuclideanDistance
+    else if (dist == DistanceFns.manhattan) manhattanDistance
+    else null
+  }
+
+
+  /**
+   * Provides a specific neighboring function given its id
+   * @param neigh The neighboring function's id
+   * @return Desired neighboring function or null if the id does not exists
+   */
+  def neighboringFactory (neigh: Int): (Float, Float, Float, Float, Double) => Double = {
+    if (neigh == NeighboringFns.gaussian) gaussianNeighborhood
+    else if (neigh == NeighboringFns.inverse) inverseNeighborhood
+    else if (neigh == NeighboringFns.proportional) proportionalNeighborhood
+    else null
+  }
+
+
+  /**
+   * Provides a specific neighboring radius decrease function given its id
+   * @param rad The decrease function's id
+   * @return Desired decrease function or null if the id does not exists
+   */
+  def radiusDecreaseFactory (rad: Int): (Int, Int, Double) => Double = {
+    if (rad == RadiusDecreaseFns.exponential) exponentialRadiusDecrease
+    else null
+  }
+
 
   /**
    * Initializes the neuron's weight vectors with random values
@@ -144,18 +198,6 @@ object FunctionCollector {
 
 
   /**
-   * Adapts the learning factor to a given time status
-   * @param epoch Current time value
-   * @return Learning factor to apply at given time
-   */
-  def exponentialFactorDecrease (learningFactor: Double, epoch: Int, factorController: Double): Double = {
-    // Exponentially decreases the learning factor depending of epoch
-    val value = learningFactor * math.exp(-epoch / factorController)
-    if (value.isNaN) 0 else value
-  }
-
-
-  /**
    * Adapts the neighborhood radius to a given time status
    * @param epoch Current time value
    * @return Learning factor to apply at given time
@@ -166,4 +208,39 @@ object FunctionCollector {
 
     if (value.isNaN) 0 else value
   }
+}
+
+
+object InitFns {
+  val randomInit = 0
+  val normalizedRandomInit = 1
+}
+
+
+/**
+ * Object for representing the distance functions
+ */
+object DistanceFns {
+  val simpleEuclidean = 0
+  val squaredEuclidean = 1
+  val manhattan = 2
+}
+
+
+/**
+ * Object for representing the neighboring functions
+ */
+object NeighboringFns {
+  val gaussian = 0
+  val proportional = 1
+  val inverse = 2
+}
+
+
+/**
+ * Object for representing the neighborhood radius
+ * decrease functions
+ */
+object RadiusDecreaseFns {
+  val exponential = 0
 }
