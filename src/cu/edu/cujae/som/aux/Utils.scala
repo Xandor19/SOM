@@ -1,4 +1,6 @@
-package som
+package cu.edu.cujae.som.aux
+
+import cu.edu.cujae.som.data.InputVector
 
 import scala.util.Random
 

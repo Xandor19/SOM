@@ -1,4 +1,4 @@
-package som
+package cu.edu.cujae.som.map
 
 /**
  * Class to represent a rectangular-shape lattice
@@ -16,7 +16,7 @@ class RectLattice (width: Int, height: Int, learningFactor: Double, tuningFactor
                    neighRadius: Int, radiusController: Double,
                    distanceFn: (Array[Double], Array[Double]) => Double,
                    neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
-                   neighborhoodRadiusUpdateFn: (Int, Int, Double) => Double)
+                   neighborhoodRadiusUpdateFn: (Double, Int, Double) => Double)
                    extends Lattice (width, height, learningFactor, tuningFactor, neighRadius, radiusController,
                                     distanceFn, neighborhoodFn, neighborhoodRadiusUpdateFn) {
 

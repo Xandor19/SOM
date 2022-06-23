@@ -1,7 +1,11 @@
-package som
+package cu.edu.cujae.som.map
+
+import cu.edu.cujae.som.aux.Utils
+import cu.edu.cujae.som.data.InputVector
 
 /**
  * Class to represent a Self-Organizing Map neuron
+ *
  * @param xPos This neuron's x coordinate in the grid
  * @param yPos This neuron's y coordinate in the grid
  * @param weightVector This neuron's weight vector

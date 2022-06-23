@@ -1,4 +1,4 @@
-package som
+package cu.edu.cujae.som.data
 
 import scala.util.Random
 

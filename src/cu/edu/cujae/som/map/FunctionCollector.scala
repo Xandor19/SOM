@@ -1,4 +1,6 @@
-package som
+package cu.edu.cujae.som.map
+
+import cu.edu.cujae.som.data.VectorSet
 
 import scala.util.Random
 
@@ -52,7 +54,7 @@ object FunctionCollector {
    * @param rad The decrease function's id
    * @return Desired decrease function or null if the id does not exists
    */
-  def radiusDecreaseFactory (rad: Int): (Int, Int, Double) => Double = {
+  def radiusDecreaseFactory (rad: Int): (Double, Int, Double) => Double = {
     if (rad == RadiusDecreaseFns.exponential) exponentialRadiusDecrease
     else null
   }
@@ -202,7 +204,7 @@ object FunctionCollector {
    * @param epoch Current time value
    * @return Learning factor to apply at given time
    */
-  def exponentialRadiusDecrease (neighRadius: Int, epoch: Int, radiusController: Double): Double = {
+  def exponentialRadiusDecrease (neighRadius: Double, epoch: Int, radiusController: Double): Double = {
     // Exponentially decreases the neighborhood radius depending of epoch
     val value = neighRadius * math.exp(-epoch / radiusController)
 

@@ -1,7 +1,10 @@
-package som
+package cu.edu.cujae.som.io
 
 import java.io.FileNotFoundException
 import java.util.Formatter
+
+import cu.edu.cujae.som.data.InputVector
+import cu.edu.cujae.som.map.Lattice
 
 /**
  * Provides functions to load input vectors from different sources
@@ -42,7 +45,7 @@ object ReaderWriter {
    * @param separator Columns separator of the csv
    * @return Tuple (inputs dimension, input features, inputs)
    */
-  def loadSetFromCSV (path: String, separator: Char): (Int, Array[String], List[InputVector]) = {
+  def loadSetFromCSV (path: String, separator: Char): (Array[String], List[InputVector]) = {
     // Reads csv
     val records = loadCSV (path, separator)
     // Obtains features names
@@ -61,7 +64,7 @@ object ReaderWriter {
       vectors = vectors.appended(new InputVector(dimensionality,
                                                  cleared.slice(0, dimensionality).map(_.toDouble), cleared.last))
     }
-    (dimensionality, features, vectors)
+    (features, vectors)
   }
 
 

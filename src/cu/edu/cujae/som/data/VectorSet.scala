@@ -1,9 +1,10 @@
-package som
+package cu.edu.cujae.som.data
 
 /**
  * Class to represent a set of input vectors in a tabular view
  * Provides methods to iterate over this vectors in an ordered
  * or randomized way
+ *
  * @param features Definition of each dimension of the vectors
  * @param vectors Input vectors
  */

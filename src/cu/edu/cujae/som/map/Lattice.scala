@@ -1,8 +1,7 @@
-package som
+package cu.edu.cujae.som.map
 
-import java.util.concurrent.TimeUnit
-
-import scala.util.Random
+import cu.edu.cujae.som.data.{InputVector, VectorSet}
+import cu.edu.cujae.som.io.MapConfig
 
 
 /**
@@ -20,10 +19,10 @@ import scala.util.Random
  */
 abstract class Lattice (val width: Int, val height: Int,
                         val initialLearningFactor: Double, val tuningFactor: Double,
-                        var neighRadius: Int, val radiusController: Double,
+                        var neighRadius: Double, val radiusController: Double,
                         distanceFn: (Array[Double], Array[Double]) => Double,
                         neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
-                        neighborhoodRadiusUpdateFn: (Int, Int, Double) => Double) {
+                        neighborhoodRadiusUpdateFn: (Double, Int, Double) => Double) {
 
   /*
    * Class fields
@@ -213,7 +212,7 @@ abstract class Lattice (val width: Int, val height: Int,
    * @param epoch Current time value
    */
   def applySingleTraining (bmuX: Float, bmuY: Float, unit: Neuron,
-                          inputVector: Array[Double], epoch: Int): Unit = {
+                           inputVector: Array[Double], epoch: Int): Unit = {
     //Gets neuron's weight vector
     val weights = unit.weights
 
@@ -222,8 +221,8 @@ abstract class Lattice (val width: Int, val height: Int,
 
       // Updates current dimension of the weight vector
       weights.update(i,  currentDim + learningFactor * neighborhoodFn(bmuX, bmuY, unit.xPos,
-                         unit.yPos, neighborhoodRadiusUpdateFn(neighRadius, epoch, radiusController)) *
-                         (inputVector(i) - currentDim))
+        unit.yPos, neighborhoodRadiusUpdateFn(neighRadius, epoch, radiusController)) *
+        (inputVector(i) - currentDim))
     }
   }
 
@@ -265,7 +264,7 @@ abstract class Lattice (val width: Int, val height: Int,
 
         // Updates current dimension of the weight vector
         weights.update(i, currentDim + x.tuningRate * neighborhoodFn(bmu.xPos, bmu.yPos, x.xPos, x.yPos,
-                          neighRadius) * (inputVector(i) - currentDim))
+          neighRadius) * (inputVector(i) - currentDim))
       }
       x.updateTuningRate()
     })
@@ -288,8 +287,8 @@ abstract class Lattice (val width: Int, val height: Int,
    * represented in the map with its BMU
    */
   def updateAvMQE (): Unit = {
-    mapAvgMQE =  neurons.flatten.flatMap(x => x.representedInputs.map(y => y._2)).sum /
-                 neurons.flatten.map(z => z.representedInputs.size).sum
+    mapAvgMQE =  neurons.flatten.flatMap(x => x.representedInputs.values).sum /
+      neurons.flatten.map(z => z.representedInputs.size).sum
   }
 
 
@@ -299,8 +298,8 @@ abstract class Lattice (val width: Int, val height: Int,
    */
   def updateMQEDeviation (): Unit = {
     mapMQEDeviation = math.sqrt(neurons.flatten.filter(n => n.representedInputs.nonEmpty).
-                      flatMap(x => x.representedInputs.map(y => math.pow(y._2 - mapAvgMQE, 2))).sum /
-                      (neurons.flatten.map(z => z.representedInputs.size).sum - 1))
+      flatMap(x => x.representedInputs.map(y => math.pow(y._2 - mapAvgMQE, 2))).sum /
+      (neurons.flatten.map(z => z.representedInputs.size).sum - 1))
   }
 
 
@@ -370,32 +369,23 @@ abstract class Lattice (val width: Int, val height: Int,
 object LatticeFactory {
   /**
    * Creates a lattice of the received distribution with the specified parameters
-   * @param latDistrib
-   * @param width
-   * @param height
-   * @param learningFactor
-   * @param tuningFactor
-   * @param neighRadius
-   * @param somRadiusController
-   * @param distanceFn
-   * @param neighborhoodFn
-   * @param radiusDecreaseFn
+   * @param config Configuration parameters for the lattice
    * @return A initial state lattice of the given distribution
    */
-  def createLattice (latDistrib: Int, width: Int, height: Int, learningFactor: Double, tuningFactor: Double,
-                     neighRadius: Int, somRadiusController: Double, distanceFn: (Array[Double], Array[Double]) => Double,
-                     neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
-                     radiusDecreaseFn: (Int, Int, Double) => Double): Lattice = {
+  def createLattice (config: MapConfig): Lattice = {
+    val distFn = FunctionCollector.distanceFactory(config.distanceFn)
+    val neighFn = FunctionCollector.neighboringFactory(config.neighFn)
+    val radDec = FunctionCollector.radiusDecreaseFactory(config.neighDecreaseFn)
 
-    if (latDistrib == LatticeDistribution.squared) {
+    if (config.latDistrib == LatticeDistribution.squared) {
       // Rectangular lattice
-      new RectLattice(width, height, learningFactor, tuningFactor, neighRadius, somRadiusController,
-        distanceFn, neighborhoodFn, radiusDecreaseFn)
+      new RectLattice(config.width, config.height, config.learnFactor, config.tuneFactor, config.neighRadius,
+                      config.decFactor, distFn, neighFn, radDec)
     }
-    else if (latDistrib == LatticeDistribution.hexagonal) {
+    else if (config.latDistrib == LatticeDistribution.hexagonal) {
       // Hexagonal lattice
-      new HexLattice(width, height, learningFactor, tuningFactor, neighRadius, somRadiusController,
-        distanceFn, neighborhoodFn, radiusDecreaseFn)
+      new HexLattice(config.width, config.height, config.learnFactor, config.tuneFactor, config.neighRadius,
+                     config.decFactor, distFn, neighFn, radDec)
     }
     else null
   }

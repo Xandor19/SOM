@@ -1,4 +1,4 @@
-package som
+package cu.edu.cujae.som.data
 
 /**
  * Class to represent an input vector, useful for training or testing stages

@@ -1,7 +1,8 @@
-package som
+package cu.edu.cujae.som.data
 
 /**
  * Class to represent a set of vectors that is accessed sequentially
+ *
  * @param features Definition of each dimension of the vectors
  * @param vectors Input vectors
  */
