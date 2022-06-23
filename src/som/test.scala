@@ -2,14 +2,24 @@ package som
 
 object test {
   def main(args: Array[String]): Unit = {
-    val prov = new provider
-    val mod = new modifier
+    val pop = ReaderWriter.loadSetFromCSV("/mnt/D80C76380C76122C/Mis Programas/Repos/SOM/Datasets/creditcardfraud_normalised.csv", ',')._3
+    var popProps = Utils.classCount(pop).map(x => (x._1, x._2, x._2.toDouble / pop.size)).toList
 
-    prov.printArr()
+    popProps.sortBy(e => e._1).foreach(x => println("Class " + x._1 + " with " + x._2 + " occurrences represents a proportion of " + x._3))
+    println("Size of the population: " + pop.size)
 
-    mod.modify(prov.giveArr)
+    val sample = Utils.stratified(pop, 0.01)
+    val samProps = Utils.classCount(sample).map(x => (x._1, x._2, x._2.toDouble / sample.size)).toList
 
-    prov.printArr()
+    samProps.sortBy(e => e._1).foreach(x => println("Class " + x._1 + " with " + x._2 + " occurrences represents a proportion of " + x._3))
+    println("Size of the sample: " + sample.size)
+
+    (popProps zip samProps).foreach(x => {
+      println("Prop difference in class " + x._1._1 + " is " + x._2._3 / x._1._3)
+    })
+
+
+
   }
 }
 

@@ -10,7 +10,7 @@ class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double],
   /*
    * Class fields
    */
-  var representedInputs = List.empty[(InputVector, Double)]
+  var representedInputs = Map.empty[InputVector, Double]
   var neighbors = List.empty[Neuron]
 
 
@@ -37,7 +37,7 @@ class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double],
    * @param inputVector Vector to be represented by this neuron
    */
   def adoptInput (inputVector: InputVector, qe: Double): Unit = {
-    representedInputs = representedInputs.appended((inputVector, qe))
+    representedInputs = representedInputs.updated(inputVector, qe)
   }
 
 
@@ -57,7 +57,7 @@ class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double],
    * @return Value of the average QE
    */
   def averageQE: Double = {
-    if (representedInputs.nonEmpty) representedInputs.map(x => x._2).sum / representedInputs.size
+    if (representedInputs.nonEmpty) representedInputs.values.sum / representedInputs.size
     else 0
   }
 
@@ -69,9 +69,7 @@ class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double],
    */
   def representedClasses: Map[String, Int] = {
     // Counts how many inputs are for each class
-    representedInputs.map(x => x._1.classification).foldLeft(Map.empty[String, Int]) {
-      (count, word) => count + (word -> (count.getOrElse(word, 0) + 1))
-    }
+    Utils.classCount(representedInputs.keys)
   }
 
 
