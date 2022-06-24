@@ -28,7 +28,7 @@ object Utils {
    * @return
    */
   def stratified (population: List[InputVector], prop: Double, shuffleSeed: Long = Random.nextInt):
-                   List[InputVector] = {
+                 (List[InputVector], List[InputVector]) = {
     // Random instance
     val rand = new Random()
     rand.setSeed(shuffleSeed)
@@ -39,6 +39,7 @@ object Utils {
     val classes = classCount(population).map(x => (x._1, x._2.toDouble / popSize))
     // Sample ready
     var sample = List.empty[InputVector]
+    var rest = List.empty[InputVector]
     // Shuffles the input
     val shuffled = Random.shuffle(population)
 
@@ -46,11 +47,18 @@ object Utils {
     classes.foreach(x => {
       // Amount calculation
       val top = (sampleSize * x._2).toInt
+      // Obtaining only the current class
+      val ofClass = shuffled.filter(i => i.classification == x._1)
 
       // Sample updating
-      sample = sample.appendedAll(shuffled.filter(i => i.classification == x._1).slice(0, top))
+      sample = sample.appendedAll(ofClass.slice(0, top))
+      // Collecting remaining instances
+      rest = rest.appendedAll(ofClass.slice(top, ofClass.size))
     })
-    sample
+    // Shuffles remainder
+    rest = rand.shuffle(rest)
+
+    (sample, rest)
   }
 
 }

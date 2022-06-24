@@ -10,6 +10,7 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
                  extends SOM (lattice, neighRadius, radiusController, distanceFn, neighborhoodFn,
                               neighborhoodRadiusUpdateFn) {
 
+  var decRadius: Double = neighRadius
   var learningFactor: Double = initialLearningFactor
   var roughTrainingIters: Int = 0
 
@@ -26,7 +27,7 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
     roughTraining(vectorSet)
 
     // Fixes neighborhood radius to only the adjacent neurons of the BMU
-    fixRadius(1)
+    decRadius = 1
 
     // Sets tuning factor for neurons
     lattice.neurons.flatten.foreach(x => x.setTuningRate(tuningFactor))
@@ -49,7 +50,9 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
    */
   def roughTraining (vectorSet: VectorSet): Unit = {
     //TODO modify loop to add variation-driven stop-condition
-    for (t <- 0 until roughTrainingIters) {
+    var t = 0
+    while (decRadius > 1) {
+    //for (t <- 0 until roughTrainingIters) {
       // Present all inputs to the map
       while (vectorSet.hasNext) {
         // Obtain next vector to analyze
@@ -65,6 +68,8 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
       // Reset iteration process over the inputs
       vectorSet.reset()
       updateFactor(t)
+      updateRadius(t)
+      t += 1
     }
   }
 
@@ -134,7 +139,7 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
 
       // Updates current dimension of the weight vector
       weights.update(i,  currentDim + learningFactor * neighborhoodFn(bmuX, bmuY, unit.xPos,
-        unit.yPos, neighborhoodRadiusUpdateFn(neighRadius, epoch, radiusController)) *
+        unit.yPos, decRadius) *
         (inputVector(i) - currentDim))
     }
   }
@@ -177,7 +182,7 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
 
         // Updates current dimension of the weight vector
         weights.update(i, currentDim + x.tuningRate * neighborhoodFn(bmu.xPos, bmu.yPos, x.xPos, x.yPos,
-          neighRadius) * (inputVector(i) - currentDim))
+          decRadius) * (inputVector(i) - currentDim))
       }
       x.updateTuningRate()
     })
@@ -192,5 +197,10 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
    */
   def updateFactor (iter: Int): Unit = {
     learningFactor = initialLearningFactor * (1 - iter/roughTrainingIters.toDouble)
+  }
+
+
+  def updateRadius (iter: Int): Unit = {
+    decRadius = neighRadius * (1 - iter / roughTrainingIters.toFloat)
   }
 }

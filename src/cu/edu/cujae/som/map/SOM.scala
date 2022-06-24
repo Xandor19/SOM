@@ -121,9 +121,6 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double, val radiusCon
   def neuronAt(x: Int, y: Int): Neuron = {
     lattice.neurons(x)(y)
   }
-
-
-  def fixRadius(value: Float): Unit = neighRadius = value
 }
 
 /**

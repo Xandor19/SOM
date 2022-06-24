@@ -117,17 +117,6 @@ object FunctionCollector {
 
 
   /**
-   * Computes the manhattan distance between two vectors
-   * @param arr1 1st vector
-   * @param arr2 2do vector
-   * @return
-   */
-  def manhattanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
-    (arr1 zip arr2).map(x => math.abs(x._1 - x._2)).sum
-  }
-
-
-  /**
    * Computes the squared euclidean distance between two vectors
    * @param arr1 1st vector
    * @param arr2 2do vector
@@ -135,6 +124,17 @@ object FunctionCollector {
    */
   def squaredEuclideanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
     (arr1 zip arr2).map(x => math.pow(x._1 - x._2, 2)).sum
+  }
+
+
+  /**
+   * Computes the manhattan distance between two vectors
+   * @param arr1 1st vector
+   * @param arr2 2do vector
+   * @return
+   */
+  def manhattanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
+    (arr1 zip arr2).map(x => math.abs(x._1 - x._2)).sum
   }
 
 
@@ -206,9 +206,10 @@ object FunctionCollector {
    */
   def exponentialRadiusDecrease (neighRadius: Double, epoch: Int, radiusController: Double): Double = {
     // Exponentially decreases the neighborhood radius depending of epoch
-    val value = neighRadius * math.exp(-epoch / radiusController)
-
-    if (value.isNaN) 0 else value
+    //val value = neighRadius * math.exp(-epoch / radiusController)
+    //println(value)
+    //value
+    neighRadius * (1 - epoch/radiusController)
   }
 }
 

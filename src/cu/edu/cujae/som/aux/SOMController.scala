@@ -3,7 +3,7 @@ package cu.edu.cujae.som.aux
 import java.util.concurrent.TimeUnit
 
 import cu.edu.cujae.som.data.{InputVector, RandomVectorSet, SequentialVectorSet, VectorSet}
-import cu.edu.cujae.som.io.{MapConfig, ReaderWriter}
+import cu.edu.cujae.som.io.{ExperimentData, MapConfig, ReaderWriter}
 import cu.edu.cujae.som.map.{FunctionCollector, Lattice, SOM, SOMFactory}
 
 import scala.util.Random
@@ -19,6 +19,8 @@ object SOMController {
   def newSOM (config: MapConfig): Unit = {
     // Loads the main dataset
     val dataset = ReaderWriter.loadSetFromCSV(config.dataset, config.setSep)
+    val datasetName = config.dataset.slice(config.dataset.lastIndexOf("/"), config.dataset.length)
+    val exportName = "results_of_" + datasetName
     // Number of SOM to create
     val runs = config.runs
 
@@ -59,8 +61,8 @@ object SOMController {
       trainingAvMQE += runTrainAvMQE
       trainingMQEDeviation += runTrainMQEDeviation
 
-      println("\nTraining for run " + test + " ended with average MQE of " + trainingAvMQE + " and standard deviation of " +
-        trainingMQEDeviation)
+      println("\nTraining for run " + test + " ended with average MQE of " + runTrainAvMQE + " and standard deviation of " +
+        runTrainMQEDeviation)
 
       if (config.trainingProp < 1) {
         // Tests the clustering capacities of the SOM
@@ -101,7 +103,12 @@ object SOMController {
     val seconds = TimeUnit.SECONDS.convert(expEndTime - expInitTime, TimeUnit.NANOSECONDS)
     println("\nAll runs were completed in " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
-    //TODO results export and bests models training export
+    // Exports the run results
+    ReaderWriter.exportExperimentResult(config.resultsExportPath + exportName, config.setSep,
+                                        List[ExperimentData](new ExperimentData(config, trainingAvMQE, trainingMQEDeviation,
+                                                                                avgCorrect, avgIncorrect, avgPrecision,
+                                                                                testAvMQE, testMQEDeviation)))
+    //TODO bests models trained export
     //ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)
   }
 
@@ -123,24 +130,27 @@ object SOMController {
     print("\nPreparing dataset")
     // Prepares the dataset, performing a stratified sampling if desired
     val initTime = System.nanoTime()
-    val inputVectors = if (setProp < 1) Utils.stratified(dataset._2, setProp, shuffleSeed)
+    val inputVectors = if (setProp < 1) Utils.stratified(dataset._2, setProp, shuffleSeed)._1
                        else rand shuffle dataset._2
     val endTime = System.nanoTime()
     val seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    print("\nInputs " + (if (setProp < 1) "stratified and" else "") + " shuffled in: " +
+    print("\nInputs " + (if (setProp < 1) "stratified and " else "") + "shuffled in: " +
       seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
-    print("\ndataset " + (if (setProp < 1) "stratified sample" else "") + " size: " + inputVectors.size)
+    print("\nDataset " + (if (setProp < 1) "stratified sample " else "") + "size: " + inputVectors.size)
     // Defines training set as the given percent of the datasetset
     val trainingSetSize = (inputVectors.size * trainingSetProp).toInt
     print("\nTraining set size: " + trainingSetSize)
 
-    // Obtains training set from the shuffled input
-    val trainingSet = new RandomVectorSet(dataset._1, inputVectors.slice(0, trainingSetSize), shuffleSeed)
+    // Obtains stratified training and test sets
+    val split = Utils.stratified(inputVectors, trainingSetProp, shuffleSeed)
+
+    // Obtains training set from stratified slice of the inputs
+    val trainingSet = new RandomVectorSet(dataset._1, split._1, shuffleSeed)
     print("\nTraining set created with size " + trainingSet.sampleSize)
 
     // Obtains test set as the remaining inputs
-    val testSet = new SequentialVectorSet(dataset._1, inputVectors.slice(trainingSetSize, dataset._2.size))
+    val testSet = new SequentialVectorSet(dataset._1, split._2)
     print("\nTest set created with size " + testSet.sampleSize)
 
     (trainingSet, testSet)
@@ -258,7 +268,7 @@ object SOMController {
     // Obtains test precision
     val precision = (right / testSet.sampleSize.toDouble) * 100
 
-    println("\nTest " + test + ": " + right + " inputs were classified correctly and " + wrong +
+    println("\nResults: " + right + " inputs were classified correctly and " + wrong +
       " incorrectly for a precision of " + precision + "%")
 
     (right, wrong, precision)
