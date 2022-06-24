@@ -10,10 +10,11 @@ import cu.edu.cujae.som.data.InputVector
  * @param yPos This neuron's y coordinate in the grid
  * @param weightVector This neuron's weight vector
  */
-class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double], var tuningRate: Double) {
+class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double]) {
   /*
    * Class fields
    */
+  var tuningRate = 1.0
   var representedInputs = Map.empty[InputVector, Double]
   var neighbors = List.empty[Neuron]
 
@@ -111,6 +112,11 @@ class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double],
     }
     // Unsuccessful addition
     else false
+  }
+
+
+  def setTuningRate (value: Double): Unit = {
+    this.tuningRate = value
   }
 
 

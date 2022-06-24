@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import cu.edu.cujae.som.data.{InputVector, RandomVectorSet, SequentialVectorSet, VectorSet}
 import cu.edu.cujae.som.io.{MapConfig, ReaderWriter}
-import cu.edu.cujae.som.map.{FunctionCollector, Lattice, LatticeFactory}
+import cu.edu.cujae.som.map.{FunctionCollector, Lattice, SOM, SOMFactory}
 
 import scala.util.Random
 
@@ -32,7 +32,7 @@ object SOMController {
     var testMQEDeviation = 0.0
 
     val expInitTime = System.nanoTime()
-    for (_ <- 0 until runs) {
+    for (test <- 0 until runs) {
       // Divides the dataset into training and testing (if desired)
       val dividedSets = prepareSet(dataset, config.setProp, config.trainingProp, config.shuffleSeed)
 
@@ -41,7 +41,7 @@ object SOMController {
       val testSet = dividedSets._2
 
       // If the parameters were not specified, runs auto-configuration
-      if (config.width == 0 || config.height == 0 || config.neighRadius == 0) autoDistribute(trainingSet, config)
+      if (config.width == 0 || config.height == 0) autoDistribute(trainingSet, config)
 
       // Prepares training
       prepareTraining(trainingSet, config.normalize)
@@ -50,7 +50,7 @@ object SOMController {
       val som = createSOM(config, trainingSet)
 
       // Shows the state of the SOM after training
-      //printSOMState(som)
+      printSOMState(som.lattice)
 
       // Obtains and accumulates resulting average MQE and its standard of deviation of the training
       val runTrainAvMQE = som.mapAvgMQE
@@ -59,12 +59,14 @@ object SOMController {
       trainingAvMQE += runTrainAvMQE
       trainingMQEDeviation += runTrainMQEDeviation
 
-      println("Training for run " + test + " ended with average MQE of " + trainingAvMQE + " and standard deviation of " +
+      println("\nTraining for run " + test + " ended with average MQE of " + trainingAvMQE + " and standard deviation of " +
         trainingMQEDeviation)
 
       if (config.trainingProp < 1) {
         // Tests the clustering capacities of the SOM
         val results = clusterTest(som, testSet, config.normalize)
+
+        printSOMState(som.lattice)
 
         // Accumulates the results of the clustering test
         avgCorrect += results._1
@@ -82,7 +84,7 @@ object SOMController {
         testAvMQE += runTestAvMQE
         testMQEDeviation += runTestMQEDeviation
 
-        println("Test " + test + " average MQE is " + runTestAvMQE + " with a standard deviation of " + runTestMQEDeviation)
+        println("\nTest " + test + " average MQE is " + runTestAvMQE + " with a standard deviation of " + runTestMQEDeviation)
       }
     }
     if (runs > 1) {
@@ -97,7 +99,7 @@ object SOMController {
     }
     val expEndTime = System.nanoTime()
     val seconds = TimeUnit.SECONDS.convert(expEndTime - expInitTime, TimeUnit.NANOSECONDS)
-    println("All runs were completed in " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
+    println("\nAll runs were completed in " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
     //TODO results export and bests models training export
     //ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)
@@ -122,7 +124,7 @@ object SOMController {
     // Prepares the dataset, performing a stratified sampling if desired
     val initTime = System.nanoTime()
     val inputVectors = if (setProp < 1) Utils.stratified(dataset._2, setProp, shuffleSeed)
-    else rand shuffle dataset._2
+                       else rand shuffle dataset._2
     val endTime = System.nanoTime()
     val seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
     print("\nInputs " + (if (setProp < 1) "stratified and" else "") + " shuffled in: " +
@@ -196,28 +198,20 @@ object SOMController {
    * @param trainingSet Set for SOM training
    * @return The created and trained SOM
    */
-  private def createSOM (config: MapConfig, trainingSet: VectorSet): Lattice = {
+  private def createSOM (config: MapConfig, trainingSet: VectorSet): SOM = {
     // Creates the SOM lattice with given distribution
     var initTime = System.nanoTime()
-    val som = LatticeFactory.createLattice(config)
+    val som = SOMFactory.createSOM(config)
 
-    // Sets the initial state of the lattice by initializing neurons and setting the distance function
-    som.constructLattice(trainingSet.dimensionality)
+    // Sets the initial state of the lattice by initializing neurons
+    som.initSOM(trainingSet, FunctionCollector.initFactory(config.initFn), config.initSeed)
     var endTime = System.nanoTime()
     var seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
-    print("\nLattice created in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
-
-    // Initializes the weight vectors with the specified function
-    initTime = System.nanoTime()
-    som.initLattice(trainingSet, FunctionCollector.initFactory(config.initFn), config.initSeed)
-    //som.initLattice(trainingSet, FunctionCollector.randomInit, initSeed)
-    endTime = System.nanoTime()
-    seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
     print("\nLattice initialized in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
     // SOM's training process
     initTime = System.nanoTime()
-    som.organizeMap(trainingSet, config.trainIter, config.tuneIter, config.tolerance)
+    som.organizeMap(trainingSet, config)
     endTime = System.nanoTime()
     seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
     print("\nSOM trained in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
@@ -230,7 +224,7 @@ object SOMController {
    * Presents the test set to the received SOM and evaluates its clustering precision
    * @return Values for correct and incorrect classifications and the precision
    */
-  private def clusterTest (som: Lattice, testSet: VectorSet, normalize: Boolean): (Int, Int, Double) = {
+  private def clusterTest (som: SOM, testSet: VectorSet, normalize: Boolean): (Int, Int, Double) = {
     var right = 0
     var wrong = 0
 
@@ -244,7 +238,7 @@ object SOMController {
       // Clusters the test input onto the map
       val pair = som.clusterInput(vector)
       // Obtains the class represented by the input's BMU
-      val neuronClass = som.neurons(pair._1)(pair._2).mainClass
+      val neuronClass = som.neuronAt(pair._1, pair._2).mainClass
 
       if (vector.classification == neuronClass) {
         // Correct classification
@@ -264,9 +258,28 @@ object SOMController {
     // Obtains test precision
     val precision = (right / testSet.sampleSize.toDouble) * 100
 
-    println("Test " + test + ": " + right + " inputs were classified correctly and " + wrong +
+    println("\nTest " + test + ": " + right + " inputs were classified correctly and " + wrong +
       " incorrectly for a precision of " + precision + "%")
 
     (right, wrong, precision)
+  }
+
+
+  /**
+   * Summarizes the state of a given SOM
+   */
+  def printSOMState (som: Lattice): Unit = {
+    //som.printSet()
+    println()
+    println()
+    som.printMap()
+    println()
+    println()
+    som.printClassesBalance()
+    println()
+    println()
+    som.printMainClasses()
+    println()
+    println()
   }
 }

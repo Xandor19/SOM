@@ -4,7 +4,7 @@ import java.io.FileNotFoundException
 import java.util.Formatter
 
 import cu.edu.cujae.som.data.InputVector
-import cu.edu.cujae.som.map.Lattice
+import cu.edu.cujae.som.map.{Lattice, SOM}
 
 /**
  * Provides functions to load input vectors from different sources
@@ -117,10 +117,10 @@ object ReaderWriter {
    * Vectors are write in wight-then-height order, that is, each
    * row is exported sequentially before going to the next row
    *
-   * @param path Path to csv file
-   * @param som Trained Self-Organizing Map to export
-   */
-  def exportTrainingToCSV (path: String, som: Lattice): Unit = {
+   * //@param path Path to csv file
+   * //@param som Trained Self-Organizing Map to export
+
+  def exportTrainingToCSV (path: String, som: SOM): Unit = {
     val writer = new Formatter(path)
 
     // Writes the SOM's distribution data
@@ -132,7 +132,7 @@ object ReaderWriter {
       writer.flush()
     })
     writer.close()
-  }
+  }*/
 
 
   /**

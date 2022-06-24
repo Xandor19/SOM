@@ -2,30 +2,19 @@ package cu.edu.cujae.som.map
 
 /**
  * Class to represent a hexagonal-shape lattice
+ *
  * @param width Width of the lattice
  * @param height Height of the lattice
- * @param learningFactor Learning rate of the rough training stage
- * @param tuningFactor Initial factor for the tuning stage
- * @param neighRadius Initial neighborhood radius
- * @param radiusController Controller for the neighborhood radius shrinking
- * @param distanceFn Function used to determinate the similarity with an input
- * @param neighborhoodFn Function to control the learning of the BMU's neighbors
- * @param neighborhoodRadiusUpdateFn Time-based function to update the neighborhood radius
  */
-class HexLattice (width: Int, height: Int, learningFactor: Double, tuningFactor: Double,
-                  neighRadius: Int, radiusController: Double,
-                  distanceFn: (Array[Double], Array[Double]) => Double,
-                  neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
-                  neighborhoodRadiusUpdateFn: (Double, Int, Double) => Double)
-                  extends Lattice (width, height, learningFactor, tuningFactor, neighRadius, radiusController,
-                                   distanceFn, neighborhoodFn, neighborhoodRadiusUpdateFn) {
+class HexLattice (width: Int, height: Int) extends Lattice (width, height) {
 
   /**
    * Lattice construction function
-   * @param vectorDim Dimensionality of the weights vectors
+   * @param vectors Vectors to place in the neurons
    */
-  override def constructLattice(vectorDim: Int): Unit = {
-    dimensionality = vectorDim
+  override def constructLattice (vectors: Iterable[Array[Double]]): Unit = {
+    // Iterator over the vectors
+    val it = vectors.iterator
 
     // Sin and cos of 60º, used to coordinate conversion
     val c60 = math.cos(math.Pi / 3)
@@ -35,7 +24,7 @@ class HexLattice (width: Int, height: Int, learningFactor: Double, tuningFactor:
     for (i <- 0 until width; j <- 0 until height) {
       if (i % 2 == 0) {
         // Transformation formula por even row
-        neurons(i)(j) = new Neuron(j, i * s60.toFloat, new Array[Double](dimensionality), tuningFactor)
+        neurons(i)(j) = new Neuron(j, i * s60.toFloat, it.next)
 
         // Assigns left-side adjacent nodes as neighbors of the current neuron using the even rows distribution
         // As neurons implement symmetrical neighboring, its only necessary to add 2 neighbors manually
@@ -45,7 +34,7 @@ class HexLattice (width: Int, height: Int, learningFactor: Double, tuningFactor:
       }
       else {
         // Transformation formula for odd row
-        neurons(i)(j) = new Neuron(j + c60.toFloat, i *s60.toFloat, new Array[Double](dimensionality), tuningFactor)
+        neurons(i)(j) = new Neuron(j + c60.toFloat, i *s60.toFloat, it.next)
 
         // Assigns left-side adjacent nodes as neighbors of the current neuron using the odd rows distribution
         // As neurons implement symmetrical neighboring, its only necessary to add 2 neighbors manually

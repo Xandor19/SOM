@@ -16,7 +16,7 @@ object FunctionCollector {
    * @param init The initialization function's id
    * @return Desired initialization function or null if the id does not exists
    */
-  def initFactory (init: Int): (Array[Array[Neuron]], VectorSet, Long) => Unit = {
+  def initFactory (init: Int): (Iterable[Array[Double]], VectorSet, Long) => Unit = {
     if (init == InitFns.randomInit) randomInit
     else if (init == InitFns.normalizedRandomInit) normalizedRandomInit
     else null
@@ -63,19 +63,19 @@ object FunctionCollector {
   /**
    * Initializes the neuron's weight vectors with random values
    * between the bounds of each input dimension
-   * @param neurons Neurons to initialize weights
+   * @param vectors Neurons to initialize weights
    * @param vectorSet Input domain for initialization
    * @param seed Seed for random initialization
    */
-  def randomInit (neurons: Array[Array[Neuron]], vectorSet: VectorSet, seed: Long): Unit = {
+  def randomInit (vectors: Iterable[Array[Double]], vectorSet: VectorSet, seed: Long): Unit = {
     // Obtains bounds of the input's dimensions
     val bounds = vectorSet.dimBounds
     val rand = new Random()
     rand.setSeed(seed)
 
-    neurons.flatten.foreach(x => {
+    vectors.foreach(x => {
       // Generates value for each dimension
-      for (i <- bounds.indices) x.weights.update(i, rand.between(bounds(i)._1, bounds(i)._2))
+      for (i <- bounds.indices) x.update(i, rand.between(bounds(i)._1, bounds(i)._2))
     })
   }
 
@@ -83,23 +83,23 @@ object FunctionCollector {
   /**
    * Initializes the neuron's weight vectors with random values
    * normalized between the bounds of each input dimension
-   * @param neurons Neurons to initialize weights
+   * @param vectors Neurons to initialize weights
    * @param vectorSet Input domain for initialization
    * @param seed Seed for random initialization
    */
-  def normalizedRandomInit (neurons: Array[Array[Neuron]], vectorSet: VectorSet, seed: Long): Unit = {
+  def normalizedRandomInit (vectors: Iterable[Array[Double]], vectorSet: VectorSet, seed: Long): Unit = {
     // Obtains bounds of the input's dimensions
     val bounds = vectorSet.dimBounds
     val rand = new Random()
     rand.setSeed(seed)
 
-    neurons.flatten.foreach(x => {
+    vectors.foreach(x => {
       // Generates value for each dimension
       for (i <- bounds.indices) {
         val dimMin = bounds(i)._1
         val dimMax = bounds(i)._2
 
-        x.weights.update(i, (rand.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
+        x.update(i, (rand.between(dimMin, dimMax) - dimMin) / (dimMax - dimMin) )
       }
     })
   }

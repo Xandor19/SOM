@@ -6,7 +6,7 @@ package cu.edu.cujae.som.data
  * @param features Definition of each dimension of the vectors
  * @param vectors Input vectors
  */
-class SequentialVectorSet (override val features: Array[String], override val vectors: List[InputVector])
+class SequentialVectorSet (features: Array[String], vectors: List[InputVector])
                           extends VectorSet (features, vectors) {
 
   /**
