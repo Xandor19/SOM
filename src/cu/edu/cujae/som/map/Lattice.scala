@@ -1,7 +1,5 @@
 package cu.edu.cujae.som.map
 
-import cu.edu.cujae.som.data.{VectorSet}
-
 /**
  * Class to represent a bi-dimensional SOM Lattice
  *
@@ -59,17 +57,7 @@ abstract class Lattice (val width: Int, val height: Int) {
    * Provides the distribution of the neurons in this lattice
    * @return LatticeDistribution constant for this lattice's distribution
    */
-  def latticeType: Int
-
-
-  /**
-   * Obtains the location in the 2-dimensional array of a neuron
-   * depending of the coordinate system of the lattice distribution
-   * @param xPos X coordinate in the specific distribution
-   * @param yPos Y coordinate in the specific distribution
-   * @return (Int, Int) pair with the X and Y coordinates as array indices
-   */
-  def neuronCoord (xPos: Float, yPos: Float): (Int, Int)
+  def latticeType: String
 }
 
 
@@ -84,9 +72,9 @@ object LatticeFactory {
    * @param height Height of the lattice
    * @return A initial state lattice of the given distribution
    */
-  def createLattice (latDistrib: Int, width: Int, height: Int): Lattice = {
+  def createLattice (latDistrib: String, width: Int, height: Int): Lattice = {
 
-    if (latDistrib == LatticeDistribution.squared) {
+    if (latDistrib == LatticeDistribution.rectangular) {
       // Rectangular lattice
       new RectLattice(width, height)
     }
@@ -103,6 +91,6 @@ object LatticeFactory {
  * Lattice distributions codes for creation
  */
 object LatticeDistribution {
-  val squared = 0
-  val hexagonal = 1
+  val rectangular = "Rectangular"
+  val hexagonal = "Hexagonal"
 }

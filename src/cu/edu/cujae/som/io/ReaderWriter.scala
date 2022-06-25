@@ -4,7 +4,6 @@ import java.io.FileNotFoundException
 import java.util.Formatter
 
 import cu.edu.cujae.som.data.InputVector
-import cu.edu.cujae.som.map.{Lattice, SOM}
 
 /**
  * Provides functions to load input vectors from different sources

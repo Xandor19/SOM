@@ -41,7 +41,7 @@ object Utils {
     var sample = List.empty[InputVector]
     var rest = List.empty[InputVector]
     // Shuffles the input
-    val shuffled = Random.shuffle(population)
+    val shuffled = rand.shuffle(population)
 
     // Adds the corresponding amount of inputs of each class to the sample
     classes.foreach(x => {

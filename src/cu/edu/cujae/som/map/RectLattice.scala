@@ -71,15 +71,5 @@ class RectLattice (width: Int, height: Int) extends Lattice (width, height) {
    * Provides the distribution of the neurons in this lattice
    * @return LatticeDistribution constant for this lattice's distribution
    */
-  override def latticeType: Int = LatticeDistribution.squared
-
-
-  /**
-   * Converts to a squared distribution coordinates, which is the same as the
-   * array indices, casted to Int
-   * @param xPos X coordinate as Float
-   * @param yPos Y coordinate as Float
-   * @return (Int, Int) pair with the X and Y coordinates as array indices
-   */
-  override def neuronCoord (xPos: Float, yPos: Float): (Int, Int) = (xPos.toInt, yPos.toInt)
+  override def latticeType: String = LatticeDistribution.rectangular
 }

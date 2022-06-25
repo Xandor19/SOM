@@ -1,16 +1,27 @@
 package cu.edu.cujae.som.map
 
-import cu.edu.cujae.som.data.{InputVector, SequentialVectorSet, VectorSet}
+import cu.edu.cujae.som.data.{InputVector, VectorSet}
 import cu.edu.cujae.som.io.MapConfig
 
 import scala.util.Random
 
-abstract class SOM (val lattice: Lattice, var neighRadius: Double, val radiusController: Double,
+/**
+ * Abstract class to represent general Self-Organizing Map
+ * @param lattice The lattice of neurons
+ * @param neighRadius Neighborhood radius
+ * @param distanceFn Distance metric to use
+ * @param neighborhoodFn Neighborhood function
+ */
+abstract class SOM (val lattice: Lattice, var neighRadius: Double,
                     val distanceFn: (Array[Double], Array[Double]) => Double,
-                    val neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
-                    val neighborhoodRadiusUpdateFn: (Double, Int, Double) => Double) {
+                    val neighborhoodFn: (Float, Float, Float, Float, Double) => Double) {
 
+  /*
+   * Class fields
+   */
   var dimensionality: Int = 0
+  var decRadius: Double = neighRadius
+  var roughTrainingIters: Int = 0
   var mapAvgMQE: Double = 0
   var mapMQEDeviation: Double = 0
 
@@ -58,13 +69,13 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double, val radiusCon
    * @return (Int, Int) pair with the indices of the BMU in the
    *         array
    */
-  def clusterInput(inputVector: InputVector): (Int, Int) = {
+  def clusterInput(inputVector: InputVector): Neuron = {
     // Find the BMU and cluster the input in it
     val bmu = findBMU(inputVector.vector)
     bmu._1.adoptInput(inputVector, bmu._2)
 
     // Indices of the BMU
-    lattice.neuronCoord(bmu._1.xPos, bmu._1.yPos)
+    bmu._1
   }
 
 
@@ -121,6 +132,11 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double, val radiusCon
   def neuronAt(x: Int, y: Int): Neuron = {
     lattice.neurons(x)(y)
   }
+
+
+  def updateRadius (iter: Int): Unit = {
+    decRadius = neighRadius * (1 - iter / roughTrainingIters.toFloat)
+  }
 }
 
 /**
@@ -136,12 +152,11 @@ object SOMFactory {
     // Obtains specified functions
     val distFn = FunctionCollector.distanceFactory(config.distanceFn)
     val neighFn = FunctionCollector.neighboringFactory(config.neighFn)
-    val neighDecFn = FunctionCollector.radiusDecreaseFactory(config.neighDecreaseFn)
 
     if (config.somType == SOMType.onlineSOM) {
       // Online training SOM
       new OnlineSOM(LatticeFactory.createLattice(config.latDistrib, config.width, config.height), config.learnFactor,
-                    config.tuneFactor, config.neighRadius, config.neighDecreaseFn, distFn, neighFn, neighDecFn)
+                    config.tuneFactor, config.neighRadius, distFn, neighFn)
     }
     else {
       // Batch learning SOM
@@ -155,6 +170,6 @@ object SOMFactory {
  * SOM types (by training approach) codes
  */
 object SOMType {
-  val onlineSOM = 0
-  val batchSOM = 1
+  val onlineSOM = "On-line"
+  val batchSOM = "Batch"
 }

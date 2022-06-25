@@ -16,7 +16,7 @@ object FunctionCollector {
    * @param init The initialization function's id
    * @return Desired initialization function or null if the id does not exists
    */
-  def initFactory (init: Int): (Iterable[Array[Double]], VectorSet, Long) => Unit = {
+  def initFactory (init: String): (Iterable[Array[Double]], VectorSet, Long) => Unit = {
     if (init == InitFns.randomInit) randomInit
     else if (init == InitFns.normalizedRandomInit) normalizedRandomInit
     else null
@@ -28,7 +28,7 @@ object FunctionCollector {
    * @param dist The distance function's id
    * @return Desired distance function or null if the id does not exists
    */
-  def distanceFactory (dist: Int): (Array[Double], Array[Double]) => Double = {
+  def distanceFactory (dist: String): (Array[Double], Array[Double]) => Double = {
     if (dist == DistanceFns.simpleEuclidean) euclideanDistance
     else if (dist == DistanceFns.squaredEuclidean) squaredEuclideanDistance
     else if (dist == DistanceFns.manhattan) manhattanDistance
@@ -41,21 +41,10 @@ object FunctionCollector {
    * @param neigh The neighboring function's id
    * @return Desired neighboring function or null if the id does not exists
    */
-  def neighboringFactory (neigh: Int): (Float, Float, Float, Float, Double) => Double = {
+  def neighboringFactory (neigh: String): (Float, Float, Float, Float, Double) => Double = {
     if (neigh == NeighboringFns.gaussian) gaussianNeighborhood
     else if (neigh == NeighboringFns.inverse) inverseNeighborhood
     else if (neigh == NeighboringFns.proportional) proportionalNeighborhood
-    else null
-  }
-
-
-  /**
-   * Provides a specific neighboring radius decrease function given its id
-   * @param rad The decrease function's id
-   * @return Desired decrease function or null if the id does not exists
-   */
-  def radiusDecreaseFactory (rad: Int): (Double, Int, Double) => Double = {
-    if (rad == RadiusDecreaseFns.exponential) exponentialRadiusDecrease
     else null
   }
 
@@ -197,26 +186,12 @@ object FunctionCollector {
     if (distance == 0) 1
     else 1 - distance / neighRadius
   }
-
-
-  /**
-   * Adapts the neighborhood radius to a given time status
-   * @param epoch Current time value
-   * @return Learning factor to apply at given time
-   */
-  def exponentialRadiusDecrease (neighRadius: Double, epoch: Int, radiusController: Double): Double = {
-    // Exponentially decreases the neighborhood radius depending of epoch
-    //val value = neighRadius * math.exp(-epoch / radiusController)
-    //println(value)
-    //value
-    neighRadius * (1 - epoch/radiusController)
-  }
 }
 
 
 object InitFns {
-  val randomInit = 0
-  val normalizedRandomInit = 1
+  val randomInit = "Random"
+  val normalizedRandomInit = "Normalized Random"
 }
 
 
@@ -224,9 +199,9 @@ object InitFns {
  * Object for representing the distance functions
  */
 object DistanceFns {
-  val simpleEuclidean = 0
-  val squaredEuclidean = 1
-  val manhattan = 2
+  val simpleEuclidean = "Euclidean"
+  val squaredEuclidean = "Squared Euclidean"
+  val manhattan = "Manhattan"
 }
 
 
@@ -234,16 +209,7 @@ object DistanceFns {
  * Object for representing the neighboring functions
  */
 object NeighboringFns {
-  val gaussian = 0
-  val proportional = 1
-  val inverse = 2
-}
-
-
-/**
- * Object for representing the neighborhood radius
- * decrease functions
- */
-object RadiusDecreaseFns {
-  val exponential = 0
+  val gaussian = "Gaussian"
+  val proportional = "Distance Proportional"
+  val inverse = "Inverse of distance"
 }

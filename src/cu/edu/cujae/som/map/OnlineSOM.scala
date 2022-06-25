@@ -3,16 +3,21 @@ package cu.edu.cujae.som.map
 import cu.edu.cujae.som.data.VectorSet
 import cu.edu.cujae.som.io.MapConfig
 
+/**
+ * Class to represent a on-line training Self-Organizing Map
+ * @param lattice The lattice of neurons
+ * @param initialLearningFactor Learning factor for training
+ * @param tuningFactor Factor for tuning stage
+ * @param neighRadius Neighborhood radius
+ * @param distanceFn Distance metric to use
+ * @param neighborhoodFn Neighborhood function
+ */
 class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuningFactor: Double,
-                 neighRadius: Double, radiusController: Double, distanceFn: (Array[Double], Array[Double]) => Double,
-                 neighborhoodFn: (Float, Float, Float, Float, Double) => Double,
-                 neighborhoodRadiusUpdateFn: (Double, Int, Double) => Double)
-                 extends SOM (lattice, neighRadius, radiusController, distanceFn, neighborhoodFn,
-                              neighborhoodRadiusUpdateFn) {
+                 neighRadius: Double, distanceFn: (Array[Double], Array[Double]) => Double,
+                 neighborhoodFn: (Float, Float, Float, Float, Double) => Double)
+                 extends SOM (lattice, neighRadius, distanceFn, neighborhoodFn) {
 
-  var decRadius: Double = neighRadius
   var learningFactor: Double = initialLearningFactor
-  var roughTrainingIters: Int = 0
 
   /**
    * Self-organization process, which lasts for a maximum number
@@ -50,9 +55,9 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
    */
   def roughTraining (vectorSet: VectorSet): Unit = {
     //TODO modify loop to add variation-driven stop-condition
-    var t = 0
-    while (decRadius > 1) {
-    //for (t <- 0 until roughTrainingIters) {
+    //var t = 0
+    //while (decRadius > 1) {
+    for (t <- 0 until roughTrainingIters) {
       // Present all inputs to the map
       while (vectorSet.hasNext) {
         // Obtain next vector to analyze
@@ -69,8 +74,9 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
       vectorSet.reset()
       updateFactor(t)
       updateRadius(t)
-      t += 1
+      //t += 1
     }
+    //println("Finished at iter " + t)
   }
 
 
@@ -197,10 +203,5 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
    */
   def updateFactor (iter: Int): Unit = {
     learningFactor = initialLearningFactor * (1 - iter/roughTrainingIters.toDouble)
-  }
-
-
-  def updateRadius (iter: Int): Unit = {
-    decRadius = neighRadius * (1 - iter / roughTrainingIters.toFloat)
   }
 }

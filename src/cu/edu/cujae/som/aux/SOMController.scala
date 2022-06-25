@@ -19,8 +19,10 @@ object SOMController {
   def newSOM (config: MapConfig): Unit = {
     // Loads the main dataset
     val dataset = ReaderWriter.loadSetFromCSV(config.dataset, config.setSep)
-    val datasetName = config.dataset.slice(config.dataset.lastIndexOf("/"), config.dataset.length)
-    val exportName = "results_of_" + datasetName
+    // Gets dataset name
+    config.dataset = config.dataset.slice(config.dataset.lastIndexOf("/") + 1, config.dataset.length)
+    // Defines file to export
+    val exportName = "results_of_" + config.dataset
     // Number of SOM to create
     val runs = config.runs
 
@@ -36,11 +38,7 @@ object SOMController {
     val expInitTime = System.nanoTime()
     for (test <- 0 until runs) {
       // Divides the dataset into training and testing (if desired)
-      val dividedSets = prepareSet(dataset, config.setProp, config.trainingProp, config.shuffleSeed)
-
-      // Obtains sets
-      val trainingSet = dividedSets._1
-      val testSet = dividedSets._2
+      val (trainingSet, testSet) = prepareSet(dataset, config.setProp, config.trainingProp, config.shuffleSeed)
 
       // If the parameters were not specified, runs auto-configuration
       if (config.width == 0 || config.height == 0) autoDistribute(trainingSet, config)
@@ -122,7 +120,7 @@ object SOMController {
    * @return Tuple of two VectorSet objects, namely, the training and test sets
    */
   private def prepareSet (dataset: (Array[String], List[InputVector]), setProp: Double, trainingSetProp: Double,
-                          shuffleSeed: Long): (VectorSet, VectorSet) = {
+                          shuffleSeed: Long = Random.nextInt): (VectorSet, VectorSet) = {
     //Random instance
     val rand = new Random()
     rand.setSeed(shuffleSeed)
@@ -138,7 +136,7 @@ object SOMController {
       seconds / 60 + " minutes and " + seconds % 60 + " seconds")
 
     print("\nDataset " + (if (setProp < 1) "stratified sample " else "") + "size: " + inputVectors.size)
-    // Defines training set as the given percent of the datasetset
+    // Defines training set as the given percent of the dataset
     val trainingSetSize = (inputVectors.size * trainingSetProp).toInt
     print("\nTraining set size: " + trainingSetSize)
 
@@ -246,9 +244,9 @@ object SOMController {
     while (testSet.hasNext) {
       val vector = testSet.next
       // Clusters the test input onto the map
-      val pair = som.clusterInput(vector)
+      val bmu = som.clusterInput(vector)
       // Obtains the class represented by the input's BMU
-      val neuronClass = som.neuronAt(pair._1, pair._2).mainClass
+      val neuronClass = bmu.mainClass
 
       if (vector.classification == neuronClass) {
         // Correct classification

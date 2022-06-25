@@ -95,22 +95,5 @@ class HexLattice (width: Int, height: Int) extends Lattice (width, height) {
    * Provides the distribution of the neurons in this lattice
    * @return LatticeDistribution constant for this lattice's distribution
    */
-  override def latticeType: Int = LatticeDistribution.hexagonal
-
-
-  /**
-   *
-   * TODO implement
-   * @param xPos X coordinate in the specific distribution
-   * @param yPos Y coordinate in the specific distribution
-   * @return (Int, Int) pair with the X and Y coordinates as array indices
-   */
-  override def neuronCoord (xPos: Float, yPos: Float): (Int, Int) = {
-    val c60 = math.cos(math.Pi / 3)
-    val s60 = math.sin(math.Pi / 3)
-    val origY = (yPos / s60).toInt
-
-    if (origY % 2 == 0) (origY, xPos.toInt )
-    else (origY, (xPos - c60).toInt)
-  }
+  override def latticeType: String = LatticeDistribution.hexagonal
 }
