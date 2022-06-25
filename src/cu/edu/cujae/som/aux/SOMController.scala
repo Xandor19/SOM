@@ -38,7 +38,7 @@ object SOMController {
     val expInitTime = System.nanoTime()
     for (test <- 0 until runs) {
       // Divides the dataset into training and testing (if desired)
-      val (trainingSet, testSet) = prepareSet(dataset, config.setProp, config.trainingProp, config.shuffleSeed)
+      val (trainingSet, testSet) = prepareSet(dataset, config.setProp, config.trainingProp/*, config.shuffleSeed*/)
 
       // If the parameters were not specified, runs auto-configuration
       if (config.width == 0 || config.height == 0) autoDistribute(trainingSet, config)
@@ -91,8 +91,8 @@ object SOMController {
       // Obtains measures averages if more than one run was made
       trainingAvMQE /= runs
       trainingMQEDeviation /= runs
-      avgCorrect /= runs
-      avgIncorrect /= runs
+      avgCorrect /= runs.toFloat
+      avgIncorrect /= runs.toFloat
       avgPrecision /= runs
       testAvMQE /= runs
       testMQEDeviation /= runs
@@ -105,9 +105,10 @@ object SOMController {
     ReaderWriter.exportExperimentResult(config.resultsExportPath + exportName, config.setSep,
                                         List[ExperimentData](new ExperimentData(config, trainingAvMQE, trainingMQEDeviation,
                                                                                 avgCorrect, avgIncorrect, avgPrecision,
-                                                                                testAvMQE, testMQEDeviation)))
+                                                                                testAvMQE, testMQEDeviation,
+                                                                                String.format(seconds/60 + ":" +
+                                                                                              seconds%60))))
     //TODO bests models trained export
-    //ReaderWriter.exportTrainingToCSV("/home/xandor19/training.csv", som)
   }
 
 
@@ -212,7 +213,7 @@ object SOMController {
     val som = SOMFactory.createSOM(config)
 
     // Sets the initial state of the lattice by initializing neurons
-    som.initSOM(trainingSet, FunctionCollector.initFactory(config.initFn), config.initSeed)
+    som.initSOM(trainingSet, FunctionCollector.initFactory(config.initFn)/*, config.initSeed*/)
     var endTime = System.nanoTime()
     var seconds = TimeUnit.SECONDS.convert(endTime - initTime, TimeUnit.NANOSECONDS)
     print("\nLattice initialized in: " + seconds / 60 + " minutes and " + seconds % 60 + " seconds")
@@ -239,10 +240,12 @@ object SOMController {
     // Normalizes input space if required
     if (normalize) testSet.normalize()
 
+    val testIt = testSet.iterator
+
     // Presents the test instances to the map
     val initTime = System.nanoTime()
-    while (testSet.hasNext) {
-      val vector = testSet.next
+    while (testIt.hasNext) {
+      val vector = testIt.next
       // Clusters the test input onto the map
       val bmu = som.clusterInput(vector)
       // Obtains the class represented by the input's BMU
@@ -277,7 +280,9 @@ object SOMController {
    * Summarizes the state of a given SOM
    */
   def printSOMState (som: Lattice): Unit = {
-    //som.printSet()
+    /*println()
+    println()
+    som.printSet()*/
     println()
     println()
     som.printMap()

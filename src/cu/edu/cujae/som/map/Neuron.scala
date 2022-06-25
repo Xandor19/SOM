@@ -10,7 +10,7 @@ import cu.edu.cujae.som.data.InputVector
  * @param yPos This neuron's y coordinate in the grid
  * @param weightVector This neuron's weight vector
  */
-class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double]) {
+class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double]) {
   /*
    * Class fields
    */
@@ -53,6 +53,24 @@ class Neuron (val xPos: Float, val yPos: Float, val weightVector: Array[Double])
    */
   def bestMatch: (InputVector, Double) = {
     representedInputs.minBy(x => x._2)
+  }
+
+
+  /**
+   * Obtains the generalized median of this neuron represented inputs,
+   * e.g, the mean of the input vectors
+   * @return Average vector of the inputs
+   */
+  def generalizedMedian: Array[Double] = {
+    var mean = new Array[Double](weightVector.length)
+
+    if (representedInputs.nonEmpty) {
+      representedInputs.keys.map(x => x.vector).foreach(vector => {
+        mean = mean.zip(vector).map(x => x._1 + x._2)
+      })
+      mean = mean.map(x => x / representedInputs.size)
+    }
+    mean
   }
 
 

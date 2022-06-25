@@ -10,17 +10,9 @@ class SequentialVectorSet (features: Array[String], vectors: List[InputVector])
                           extends VectorSet (features, vectors) {
 
   /**
-   * Provides the next input vector in sequential order
-   * @return Vector in current index
+   * Provides an iterator over the vector set
+   * @return Iterator in the original sequential order
    */
-  override def next: InputVector = {
-    vectors(accessIndex)
-  }
-
-
-  /**
-   * Resets the iteration parameters, returning to the start index
-   */
-  override def reset (): Unit = accessIndex = -1
+  override def iterator: Iterator[InputVector] = new SetIterator(vectors)
 }
 

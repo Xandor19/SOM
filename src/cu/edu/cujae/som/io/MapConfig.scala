@@ -48,7 +48,7 @@ class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Doubl
   /*
    * Provides a string with current instance values to use
    */
-  val parameters: String = List(dataset, setProp, trainingProp, normalize, somType, latDistrib, width, height,
+  def parameters: String = List(dataset, setProp, trainingProp, normalize, somType, latDistrib, width, height,
                                 neighRadius, learnFactor, tuneFactor, initFn, distanceFn, neighFn,
                                 trainIter, tuneIter, tolerance, runs, initSeed, shuffleSeed).mkString(",")
 

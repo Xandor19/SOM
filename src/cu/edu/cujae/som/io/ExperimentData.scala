@@ -12,17 +12,20 @@ package cu.edu.cujae.som.io
  * @param testAvSD Standard of deviation of the testing average MQE
  */
 class ExperimentData (config: MapConfig, trainAvMQE: Double, trainAvSD: Double, avCorrect: Double,
-                      avIncorrect: Double, avPrecision: Double, testAvMQE: Double, testAvSD: Double) {
+                      avIncorrect: Double, avPrecision: Double, testAvMQE: Double, testAvSD: Double,
+                      elapsedTime: String) {
 
   /*
    * Provides a string with the field names for new export files
    */
    val attributes: String = config.attributes + "," + "Av MQE after training,MQE SD after training,Av success,Av " +
-                                                     "failure,Av Precision,Av MQE after test,MQE SD after test"
+                                                      "failure,Av Precision,Av MQE after test,MQE SD after test," +
+                                                      "Elapsed time"
+
 
   /*
    * Provides a string with current instance values to transfer
    */
-   val data: String = config.parameters + "," + List(trainAvMQE, trainAvSD, avCorrect, avIncorrect, avPrecision,
-                                                     testAvMQE, testAvSD).mkString(",")
+   def data: String = config.parameters + "," + List(trainAvMQE, trainAvSD, avCorrect, avIncorrect, avPrecision,
+                                                     testAvMQE, testAvSD, elapsedTime).mkString(",")
 }

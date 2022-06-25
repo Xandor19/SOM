@@ -54,14 +54,14 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
    * @param vectorSet The set used for the training
    */
   def roughTraining (vectorSet: VectorSet): Unit = {
-    //TODO modify loop to add variation-driven stop-condition
-    //var t = 0
-    //while (decRadius > 1) {
+    // Applies training for number of iters
     for (t <- 0 until roughTrainingIters) {
+      // Iterator over the set
+      val setIt = vectorSet.iterator
       // Present all inputs to the map
-      while (vectorSet.hasNext) {
+      while (setIt.hasNext) {
         // Obtain next vector to analyze
-        val currentVector = vectorSet.next
+        val currentVector = setIt.next
         // Obtain BMU for current input
         val bmu = findBMU(currentVector.vector)
 
@@ -70,13 +70,10 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
           applySingleTraining(bmu._1.xPos, bmu._1.yPos, x, currentVector.vector, t)
         })
       }
-      // Reset iteration process over the inputs
-      vectorSet.reset()
+      // Updates factors after iteration
       updateFactor(t)
       updateRadius(t)
-      //t += 1
     }
-    //println("Finished at iter " + t)
   }
 
 
@@ -92,12 +89,14 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
     var i = 0
 
     do {
+      // Obtains iterator over the inputs
+      val setIt = vectorSet.iterator
       mapAvgMQE = 0
 
       // Present all inputs to the map
-      while (vectorSet.hasNext) {
+      while (setIt.hasNext) {
         // Obtain next vector to analyze
-        val currentVector = vectorSet.next
+        val currentVector = setIt.next
         // Obtain BMY for current input
         val bmu = findBMU(currentVector.vector)
 
@@ -109,9 +108,6 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
       }
       // Obtains average MQE
       mapAvgMQE /= vectorSet.vectors.size
-
-      // Reset iteration process over the inputs
-      vectorSet.reset()
 
       i += 1
     } while (mapAvgMQE > avMQETol && i < tuningIters)

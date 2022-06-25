@@ -8,7 +8,7 @@ package cu.edu.cujae.som.data
  * @param features Definition of each dimension of the vectors
  * @param vectors Input vectors
  */
-abstract class VectorSet (val features: Array[String], val vectors: List[InputVector]) {
+abstract class VectorSet (val features: Array[String], val vectors: List[InputVector]) extends Iterable[InputVector] {
 
   /*
    * Class fields
@@ -16,7 +16,6 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
   val dimensionality: Int = features.length - 1
   val sampleSize: Int = vectors.size
   protected val bounds: Array[(Double, Double)] = new Array[(Double, Double)](dimensionality)
-  protected var accessIndex: Int = -1
   protected var boundsFound = false
 
 
@@ -70,18 +69,6 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
     })
   }
 
-  /**
-   * Checks wetter there are input vectors remaining
-   * @return True if the sequential access has not reached
-   *         the amount of vectors, false otherwise
-   */
-  def hasNext: Boolean = {
-    accessIndex += 1
-
-    if (accessIndex < sampleSize) true
-    else false
-  }
-
 
   /**
    * Prints this vector set as a table, specifying the dimensions
@@ -110,9 +97,27 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
   }
 
 
-  /*
-   * Abstract methods for iteration
-   */
-  def next: InputVector
-  def reset (): Unit
+  class SetIterator (val vectors: List[InputVector]) extends Iterator[InputVector] {
+
+    /*
+     * Class fields
+     */
+    private var accessIndex = -1
+    private val sampleSize = vectors.size
+
+
+    /**
+     * Checks wetter there are input vectors remaining
+     * @return True if the sequential access has not reached
+     *         the amount of vectors, false otherwise
+     */
+    override def hasNext: Boolean = {
+      accessIndex += 1
+
+      if (accessIndex < sampleSize) true
+      else false
+    }
+
+    override def next(): InputVector = vectors(accessIndex)
+  }
 }

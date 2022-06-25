@@ -16,23 +16,10 @@ class RandomVectorSet (features: Array[String], vectors: List[InputVector], seed
   val rand = new Random()
   rand.setSeed(seed)
 
-  var randomized: List[InputVector] = rand.shuffle(vectors)
 
   /**
-   * Provides next input vector in the order in which where shuffled
-   * @return Vector in current index
+   * Provides an iterator over a randomized order of the vectors
+   * @return Randomized SetIterator
    */
-  override def next: InputVector = {
-    randomized(accessIndex)
-  }
-
-
-  /**
-   * Resets the iteration parameters, returning to the start index and
-   * re-shuffling the vectors to a new random order
-   */
-  override def reset (): Unit = {
-    accessIndex = -1
-    randomized = rand.shuffle(vectors)
-  }
+  override def iterator: Iterator[InputVector] = new SetIterator(rand.shuffle(vectors))
 }

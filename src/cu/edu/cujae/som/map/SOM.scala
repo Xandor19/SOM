@@ -30,10 +30,10 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
    * Sets the SOM to a initial state
    *
    * @param trainingSet Input space that will be used for training
-   * @param initFn      Function for initializing the weights
-   * @param seed        Seed for random initialization
+   * @param initFn Function for initializing the weights
+   * @param seed Seed for random initialization
    */
-  def initSOM(trainingSet: VectorSet, initFn: (Iterable[Array[Double]], VectorSet, Long) => Unit,
+  def initSOM (trainingSet: VectorSet, initFn: (Iterable[Array[Double]], VectorSet, Long) => Unit,
               seed: Long = Random.nextInt()): Unit = {
     // Sets the SOM dimensionality
     dimensionality = trainingSet.dimensionality
@@ -55,9 +55,9 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
    * distance, is minimum to the input vector
    *
    * @param input The input vector to find its BMU
-   * @return The neuron that has the MQE for that input
+   * @return The neuron that has the MQE for that input and the error value
    */
-  def findBMU(input: Array[Double]): (Neuron, Double) = {
+  def findBMU (input: Array[Double]): (Neuron, Double) = {
     lattice.neurons.flatten.map(x => (x, distanceFn(input, x.weightVector))).minBy(x => x._2)
   }
 
@@ -66,15 +66,13 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
    * Assigns the received input to a neuron of this map
    *
    * @param inputVector Input vector to cluster in the map
-   * @return (Int, Int) pair with the indices of the BMU in the
-   *         array
+   * @return BMU for the input
    */
-  def clusterInput(inputVector: InputVector): Neuron = {
+  def clusterInput (inputVector: InputVector): Neuron = {
     // Find the BMU and cluster the input in it
     val bmu = findBMU(inputVector.vector)
     bmu._1.adoptInput(inputVector, bmu._2)
 
-    // Indices of the BMU
     bmu._1
   }
 
@@ -87,14 +85,14 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
    * @param mapConfig Configuration of the SOM which includes the training
    *                  settings
    */
-  def organizeMap(vectorSet: VectorSet, mapConfig: MapConfig): Unit
+  def organizeMap (vectorSet: VectorSet, mapConfig: MapConfig): Unit
 
 
   /**
    * Updates the average MQE of the network by accumulating the QE of each input
    * represented in the map with its BMU
    */
-  def updateAvMQE(): Unit = {
+  def updateAvMQE (): Unit = {
     mapAvgMQE = lattice.neurons.flatten.flatMap(x => x.representedInputs.values).sum /
       lattice.neurons.flatten.map(z => z.representedInputs.size).sum
   }
@@ -104,10 +102,10 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
    * Updates the MQE standard deviation of the network by accumulating the difference
    * between the QE of each input with its BMU and the average MQE
    */
-  def updateMQEDeviation(): Unit = {
+  def updateMQEDeviation (): Unit = {
     mapMQEDeviation = math.sqrt(lattice.neurons.flatten.filter(n => n.representedInputs.nonEmpty).
       flatMap(x => x.representedInputs.map(y => math.pow(y._2 - mapAvgMQE, 2))).sum /
-      (lattice.neurons.flatten.map(z => z.representedInputs.size).sum - 1))
+             (lattice.neurons.flatten.map(z => z.representedInputs.size).sum - 1))
   }
 
 
@@ -129,11 +127,15 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
    * @param y Column position in the array
    * @return The neuron
    */
-  def neuronAt(x: Int, y: Int): Neuron = {
+  def neuronAt (x: Int, y: Int): Neuron = {
     lattice.neurons(x)(y)
   }
 
 
+  /**
+   * Updates neighborhood radius in inverse-of-time function
+   * @param iter Current iteration
+   */
   def updateRadius (iter: Int): Unit = {
     decRadius = neighRadius * (1 - iter / roughTrainingIters.toFloat)
   }
@@ -146,7 +148,7 @@ object SOMFactory {
   /**
    * Creates the specified type of SOM with the received parameters
    * @param config Configuration parameters of the SOM
-   * @return
+   * @return Created SOM
    */
   def createSOM (config: MapConfig): SOM = {
     // Obtains specified functions
@@ -160,7 +162,8 @@ object SOMFactory {
     }
     else {
       // Batch learning SOM
-      null
+      new BatchSOM(LatticeFactory.createLattice(config.latDistrib, config.width, config.height), config.neighRadius,
+                   distFn, neighFn)
     }
   }
 }
