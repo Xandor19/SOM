@@ -46,7 +46,7 @@ object Utils {
     // Adds the corresponding amount of inputs of each class to the sample
     classes.foreach(x => {
       // Amount calculation
-      val top = (sampleSize * x._2).toInt
+      val top = /*math.ceil*/(sampleSize * x._2).toInt
       // Obtaining only the current class
       val ofClass = shuffled.filter(i => i.classification == x._1)
 
@@ -61,4 +61,20 @@ object Utils {
     (sample, rest)
   }
 
+
+  /**
+   * Splits a set of input vectors in the different classes that composes it
+   * @param dataset Elements of the dataset to split
+   * @return List of lists of vectors of each class
+   */
+  def splitByClasses (dataset: List[InputVector]): List[List[InputVector]] = {
+    var distributed = List.empty[List[InputVector]]
+
+    // Maps dataset by its classes
+    dataset.map(x => x.classification).distinct.foreach(x => {
+      // Appends all instances of current class
+      distributed = distributed.appended(dataset.filter(v => v.classification == x))
+    })
+    distributed
+  }
 }

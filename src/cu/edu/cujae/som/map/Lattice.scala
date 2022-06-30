@@ -22,35 +22,48 @@ abstract class Lattice (val width: Int, val height: Int) {
 
 
   /**
-   * Prints the set of weights of this map's neurons
+   * Provides the weight vectors of the neurons of the lattice, in horizontal order
+   * @return Array of vectors (array of float) with each row representing a weight vector
    */
-  def printSet (): Unit = {
-    neurons.flatten.foreach(x => {
-      print("Neuron at pos (" + x.xPos + ", " + x.yPos + "): [")
-      x.weights.foreach(v => print(v + ", "))
-      println("]")
-    })
+  def vectorSet: Array[Array[Double]] = neurons.flatten.map(x => x.weights)
+
+
+  /**
+   * Provides a lattice representation with the number of hits of each neuron (inputs
+   * that it represents)
+   * @return Bi-dimensional Int array in which each (i, j) represents the amount
+   *         of inputs clustered in the neuron in that position's
+   */
+  def neuronHits: Array[Array[Int]] = neurons.map(x => x.map(y => y.representedInputs.size))
+
+
+  /**
+   * Provides a lattice representation with the classes balance of each neuron (total of
+   * inputs and the amount of different classes of the inputs
+   * @return Bi-dimensional array of (Int, Int) tuples in which the first number represents
+   *         the number of hits in the neuron and the second the amount of different classes
+   *         of those hits
+   */
+  def classesBalance: Array[Array[(Int, Int)]] = {
+    neurons.map(x => x.map(y => (y.representedInputs.size, y.representedClasses.size)))
   }
 
 
   /**
-   * Prints this map distribution, e.g, the neurons with the number of inputs
-   * that represents
+   * Provides a lattice representation with the main class of each neuron (e.g, the
+   * class with more inputs represented by the neuron
+   * @return Bi-dimensional String array in which each (i, j) represents the main
+   *         class of the neuron in that position
    */
-  def printMap (): Unit
+  def mainClasses: Array[Array[String]] = neurons.map(x => x.map(y => y.findMainClass._1))
 
 
   /**
-   * Prints each neuron as in printMap but adding how many classes it represents
+   * Provides the weight vectors of the lattice with the coordinates of their
+   * respective neuron
+   * @return Array of tuples with (x coord, y coord, weight vector)
    */
-  def printClassesBalance (): Unit
-
-
-  /**
-   * Prints the name of the class that each neuron represents (the class from which
-   * the neuron has most instances)
-   */
-  def printMainClasses (): Unit
+  def indexedVectors: Array[(Float, Float, Array[Double])] = neurons.flatten.map(x => (x.xPos, x.yPos, x.weightVector))
 
 
   /**

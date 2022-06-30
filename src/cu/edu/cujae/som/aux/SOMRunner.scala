@@ -1,41 +1,45 @@
 package cu.edu.cujae.som.aux
 
-import cu.edu.cujae.som.io.MapConfig
+import cu.edu.cujae.som.io.{MapConfig, Tasks}
 import cu.edu.cujae.som.map._
+
+import scala.util.Random
 
 object SOMRunner {
 
   def main(args: Array[String]): Unit = {
-    var path = "./Datasets/wine.csv"
+    val path = "./Datasets/reduced_card_fraud_normalised_less_anomalies.csv"
     val sep = ','
-    val exportPath = "./Results/"
+    val modelExportPath = ""
+    val resultsExportPath = "./Results/"
     val setProp = 1
     val trainingSetProp = 0.8
-    var latDistrib = LatticeDistribution.hexagonal
-    var somTye = SOMType.batchSOM
-    var somLearningFactor = 0.8
-    var somTuningFactor = 0.2
-    var width = 9
-    var height = 6
-    var somNeighRadius = 5
-    var roughIters = 200
-    var tuningIters = 54000
-    var tolerance = 0
-    var initFn = InitFns.normalizedRandomInit
-    val normalize = true
-    var distanceFn = DistanceFns.simpleEuclidean
-    var neighborhoodFn = NeighboringFns.gaussian
-    var initSeed = 500
-    var shuffleSeed = 250
+    var normalize = false
+    val task = Tasks.anomaly
     var experiments = 30
+    var somType = SOMType.batchSOM
+    var latDistrib = LatticeDistribution.rectangular
+    var latWidth = 0
+    var latHeight = 0
+    var latNeighRadius = 0
+    var onlineLearningFactor = 0.8
+    var onlineTuningFactor = 0.2
+    var trainingIters = 200
+    var onlineTuningIters = 27000
+    var initFn = InitFns.randomInit
+    var distanceFn = DistanceFns.squaredEuclidean
+    var neighborhoodFn = NeighboringFns.gaussian
+    var initSeed = Random.nextInt()
+    var shuffleSeed = Random.nextInt()
 
-    SOMController.newSOM(new MapConfig(path, sep, setProp, trainingSetProp, normalize, somTye, latDistrib,
-                         learnFactor = somLearningFactor, tuneFactor = somTuningFactor, initFn = initFn,
-                         distanceFn = distanceFn, neighFn = neighborhoodFn, trainIter = roughIters,
-                         /*tuneIter = tuningIters, */runs = experiments, resultsExportPath = exportPath,
-                         trainingExportPath = ""
-      //,width = width, height = height, neighRadius = somNeighRadius, initSeed = initSeed, shuffleSeed = shuffleSeed
-    ))
 
+    SOMController.newSOMFlow(new MapConfig(dataset = path, setSep = sep, trainingExportPath = modelExportPath,
+                             resultsExportPath = resultsExportPath, setProp = setProp, trainingProp = trainingSetProp,
+                             normalize = normalize, task = task, runs = experiments, somType = somType,
+                             latDistrib = latDistrib, width = latWidth, height = latHeight, neighRadius = latNeighRadius,
+                             learnFactor = onlineLearningFactor, tuneFactor = onlineTuningFactor,
+                             trainIter = trainingIters, tuneIter = onlineTuningIters, initFn = initFn,
+                             distanceFn = distanceFn, neighFn = neighborhoodFn, randInitSeed = initSeed,
+                             randShuffleSeed = shuffleSeed))
   }
 }

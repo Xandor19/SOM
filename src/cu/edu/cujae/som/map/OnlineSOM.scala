@@ -6,18 +6,16 @@ import cu.edu.cujae.som.io.MapConfig
 /**
  * Class to represent a on-line training Self-Organizing Map
  * @param lattice The lattice of neurons
- * @param initialLearningFactor Learning factor for training
+ * @param learningFactor Learning factor for training
  * @param tuningFactor Factor for tuning stage
  * @param neighRadius Neighborhood radius
  * @param distanceFn Distance metric to use
  * @param neighborhoodFn Neighborhood function
  */
-class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuningFactor: Double,
+class OnlineSOM (lattice: Lattice, val learningFactor: Double, val tuningFactor: Double,
                  neighRadius: Double, distanceFn: (Array[Double], Array[Double]) => Double,
                  neighborhoodFn: (Float, Float, Float, Float, Double) => Double)
                  extends SOM (lattice, neighRadius, distanceFn, neighborhoodFn) {
-
-  var learningFactor: Double = initialLearningFactor
 
   /**
    * Self-organization process, which lasts for a maximum number
@@ -27,12 +25,12 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
    *                  settings
    */
   def organizeMap (vectorSet: VectorSet, mapConfig: MapConfig): Unit = {
-    roughTrainingIters = mapConfig.trainIter
     // Rough-train the network for a number of iterations
-    roughTraining(vectorSet)
+    roughTraining(vectorSet, mapConfig.trainIter)
 
-    // Fixes neighborhood radius to only the adjacent neurons of the BMU
-    decRadius = 1
+    // Fixes neighborhood rank to only the adjacent neurons of the BMU, as their distance
+    // are always 1 and neighborhood radius if fixed to 1 for tuning stage
+    decRadius = neighborhoodFn(1, 1, 1, 0, 1)
 
     // Sets tuning factor for neurons
     lattice.neurons.flatten.foreach(x => x.setTuningRate(tuningFactor))
@@ -44,7 +42,7 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
     vectorSet.vectors.foreach(x => clusterInput(x))
 
     // Updates the trained map MQE standard of deviation
-    updateMQEDeviation()
+    updateSdMQE()
   }
 
 
@@ -53,9 +51,11 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
    * (possibly random) state
    * @param vectorSet The set used for the training
    */
-  def roughTraining (vectorSet: VectorSet): Unit = {
+  def roughTraining (vectorSet: VectorSet, trainIters: Int): Unit = {
+    var decFactor = learningFactor
+
     // Applies training for number of iters
-    for (t <- 0 until roughTrainingIters) {
+    for (t <- 0 until trainIters) {
       // Iterator over the set
       val setIt = vectorSet.iterator
       // Present all inputs to the map
@@ -67,12 +67,12 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
 
         // Applies learning cycle around the BMU
         lattice.neurons.flatten.foreach(x => {
-          applySingleTraining(bmu._1.xPos, bmu._1.yPos, x, currentVector.vector, t)
+          applySingleTraining(bmu._1.xPos, bmu._1.yPos, x, currentVector.vector, decFactor)
         })
       }
       // Updates factors after iteration
-      updateFactor(t)
-      updateRadius(t)
+      decFactor = updateFactor(t, trainIters)
+      decRadius = updateRadius(t, trainIters)
     }
   }
 
@@ -91,7 +91,7 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
     do {
       // Obtains iterator over the inputs
       val setIt = vectorSet.iterator
-      mapAvgMQE = 0
+      avgMQE = 0
 
       // Present all inputs to the map
       while (setIt.hasNext) {
@@ -101,16 +101,15 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
         val bmu = findBMU(currentVector.vector)
 
         // Accumulates the MQE of each BMU
-        mapAvgMQE += bmu._2
+        avgMQE += bmu._2
 
         // Send BMU of current input for tuning
         applySingleTuning(bmu._1, currentVector.vector)
       }
       // Obtains average MQE
-      mapAvgMQE /= vectorSet.vectors.size
-
+      avgMQE /= vectorSet.vectors.size
       i += 1
-    } while (mapAvgMQE > avMQETol && i < tuningIters)
+    } while (avgMQE > avMQETol && i < tuningIters)
   }
 
 
@@ -129,10 +128,9 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
    * @param bmuY Value of the y position of the BMU on the lattice
    * @param unit Current neuron to train
    * @param inputVector Input vector represented by the BMU
-   * @param epoch Current time value
    */
-  def applySingleTraining (bmuX: Float, bmuY: Float, unit: Neuron,
-                           inputVector: Array[Double], epoch: Int): Unit = {
+  def applySingleTraining (bmuX: Float, bmuY: Float, unit: Neuron, inputVector: Array[Double],
+                           learnFactor: Double): Unit = {
     //Gets neuron's weight vector
     val weights = unit.weights
 
@@ -140,9 +138,8 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
       val currentDim = weights(i)
 
       // Updates current dimension of the weight vector
-      weights.update(i,  currentDim + learningFactor * neighborhoodFn(bmuX, bmuY, unit.xPos,
-        unit.yPos, decRadius) *
-        (inputVector(i) - currentDim))
+      weights.update(i,  currentDim + learnFactor * neighborhoodFn(bmuX, bmuY, unit.xPos, unit.yPos, decRadius) *
+                    (inputVector(i) - currentDim))
     }
   }
 
@@ -183,8 +180,7 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
         val currentDim = weights(i)
 
         // Updates current dimension of the weight vector
-        weights.update(i, currentDim + x.tuningRate * neighborhoodFn(bmu.xPos, bmu.yPos, x.xPos, x.yPos,
-          decRadius) * (inputVector(i) - currentDim))
+        weights.update(i, currentDim + x.tuningRate * decRadius * (inputVector(i) - currentDim))
       }
       x.updateTuningRate()
     })
@@ -194,10 +190,10 @@ class OnlineSOM (lattice: Lattice, val initialLearningFactor: Double, val tuning
   /**
    * Updates the learning factor of rough training by inverse-of-the-time
    * function
-   * @param iter Current iteration
+   * @param epoch Current iteration
    * @return Factor for current iteration
    */
-  def updateFactor (iter: Int): Unit = {
-    learningFactor = initialLearningFactor * (1 - iter/roughTrainingIters.toDouble)
+  def updateFactor (epoch: Int, totIter: Float): Double = {
+    learningFactor * (1 - epoch / totIter)
   }
 }

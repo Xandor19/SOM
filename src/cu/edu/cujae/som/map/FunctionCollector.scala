@@ -43,8 +43,6 @@ object FunctionCollector {
    */
   def neighboringFactory (neigh: String): (Float, Float, Float, Float, Double) => Double = {
     if (neigh == NeighboringFns.gaussian) gaussianNeighborhood
-    else if (neigh == NeighboringFns.inverse) inverseNeighborhood
-    else if (neigh == NeighboringFns.proportional) proportionalNeighborhood
     else null
   }
 
@@ -150,42 +148,6 @@ object FunctionCollector {
       if (value.isNaN) 0 else value
     }
   }
-
-
-  /**
-   * Neighborhood function which reduces the impact of an input on the neuron depending
-   * on the inverse proportionality of the distance between the neuron and the BMU
-   * @param bmuX Value of x position of the BMU on the lattice
-   * @param bmuY Value of the y position of the BMU on the lattice
-   * @param neighX Value of x position of the neighbor on the lattice
-   * @param neighY Value of the y position of the neighbor on the lattice
-   * @param neighRadius Current neighborhood radius
-   * @return Effect of the function in the neuron learning
-   */
-  def proportionalNeighborhood (bmuX: Float, bmuY: Float, neighX: Float, neighY: Float, neighRadius: Double): Double = {
-    val distance = squaredEuclideanDistance(Array(bmuX, bmuY), Array(neighX, neighY))
-
-    if (distance == 0) 1
-    else 1 / distance
-  }
-
-
-  /**
-   * Neighborhood function which reduces the impact of an input on the neuron depending
-   * on the inverse of the distance between the neuron and the BMU
-   * @param bmuX Value of x position of the BMU on the lattice
-   * @param bmuY Value of the y position of the BMU on the lattice
-   * @param neighX Value of x position of the neighbor on the lattice
-   * @param neighY Value of the y position of the neighbor on the lattice
-   * @param neighRadius Current neighborhood radius
-   * @return Effect of the function in the neuron learning
-   */
-  def inverseNeighborhood (bmuX: Float, bmuY: Float, neighX: Float, neighY: Float, neighRadius: Double): Double = {
-    val distance = squaredEuclideanDistance(Array(bmuX, bmuY), Array(neighX, neighY))
-
-    if (distance == 0) 1
-    else 1 - distance / neighRadius
-  }
 }
 
 
@@ -210,6 +172,4 @@ object DistanceFns {
  */
 object NeighboringFns {
   val gaussian = "Gaussian"
-  val proportional = "Distance Proportional"
-  val inverse = "Inverse of distance"
 }

@@ -5,5 +5,5 @@ package cu.edu.cujae.som.data
  * @param vector The input data
  * @param dim The dimension of the vector
  */
-class InputVector (val dim: Int, val vector: Array[Double], val classification: String) {
+class InputVector (val datasetIndex: Int, val dim: Int, val vector: Array[Double], val classification: String) {
 }

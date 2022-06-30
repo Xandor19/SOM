@@ -8,7 +8,7 @@ package cu.edu.cujae.som.data
  * @param features Definition of each dimension of the vectors
  * @param vectors Input vectors
  */
-abstract class VectorSet (val features: Array[String], val vectors: List[InputVector]) extends Iterable[InputVector] {
+class VectorSet (val features: Array[String], val vectors: List[InputVector]) extends Iterable[InputVector] {
 
   /*
    * Class fields
@@ -49,6 +49,17 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
 
 
   /**
+   * Provides the dimension's bounds of this set
+   * @return Array of tuples (Double, Double) with the lower and
+   *         upper bounds respectively
+   */
+  def dimBounds: Array[(Double, Double)] = {
+    if (!boundsFound) findBounds()
+    bounds
+  }
+
+
+  /**
    * Normalizes this set's vectors
    * Dimension's bounds must be found with findBounds method
    * before using this method
@@ -71,10 +82,10 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
 
 
   /**
-   * Prints this vector set as a table, specifying the dimensions
+   * Provides this vector set as a table, specifying the dimensions
    * names and the class of each vector, if known
    */
-  def printSet (): Unit = {
+  def asTable (): Unit = {
     features.foreach(x => print(x + ", "))
     println()
     vectors.foreach(x => {
@@ -86,17 +97,16 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
 
 
   /**
-   * Provides the dimension's bounds of this set
-   * @return Array of tuples (Double, Double) with the lower and
-   *         upper bounds respectively
+   * Provides an iterator for the original order of the inputs
+   * @return SetIterator
    */
-  def dimBounds: Array[(Double, Double)] = {
-    if (!boundsFound) findBounds()
-
-    bounds
-  }
+  override def iterator: Iterator[InputVector] = new SetIterator(vectors)
 
 
+  /**
+   * Iterator for a set of input vectors
+   * @param vectors The input vectors to iterate over
+   */
   class SetIterator (val vectors: List[InputVector]) extends Iterator[InputVector] {
 
     /*
@@ -118,6 +128,11 @@ abstract class VectorSet (val features: Array[String], val vectors: List[InputVe
       else false
     }
 
-    override def next(): InputVector = vectors(accessIndex)
+
+    /**
+     * Provides next vector in the iteration order
+     * @return
+     */
+    override def next: InputVector = vectors(accessIndex)
   }
 }

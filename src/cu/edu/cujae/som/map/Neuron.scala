@@ -16,18 +16,8 @@ class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double])
    */
   var tuningRate = 1.0
   var representedInputs = Map.empty[InputVector, Double]
+  var representedClass = "None"
   var neighbors = List.empty[Neuron]
-
-
-  /**
-   * Applies the distance function to each dimension of the vectors individually
-   * @param inputVector Vector containing the input data
-   * @return Array containing the resulting distance of each dimension of the
-   *         data in its corresponding index
-   */
-  def individualDimensionDistance (inputVector: InputVector): Array[Double] = {
-    new Array[Double](0)
-  }
 
 
   /**
@@ -41,7 +31,7 @@ class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double])
    * Adds the received input as represented by this neuron (it's the input's BMU)
    * @param inputVector Vector to be represented by this neuron
    */
-  def adoptInput (inputVector: InputVector, qe: Double): Unit = {
+  def representInput (inputVector: InputVector, qe: Double): Unit = {
     representedInputs = representedInputs.updated(inputVector, qe)
   }
 
@@ -49,7 +39,7 @@ class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double])
   /**
    * Obtains the most similar input, e.g, input with a local MQE from those
    * represented by this neuron
-   * @return
+   * @return InputVector with the local MQE
    */
   def bestMatch: (InputVector, Double) = {
     representedInputs.minBy(x => x._2)
@@ -81,7 +71,7 @@ class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double])
    */
   def averageQE: Double = {
     if (representedInputs.nonEmpty) representedInputs.values.sum / representedInputs.size
-    else 0
+    else -1
   }
 
 
@@ -100,18 +90,36 @@ class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double])
    * Obtains the most frequent class of those represented in this neuron
    * @return Name of the most frequent class
    */
-  def mainClass: String = {
+  def findMainClass: (String, Int) = {
     // Looks for the most frequent class
-    if (representedInputs.nonEmpty) representedClasses.toList.maxBy(x => x._2)._1
+    if (representedInputs.nonEmpty) representedClasses.toList.maxBy(x => x._2)
     // This neuron does not represent any input
-    else "None"
+    else (representedClass, 0)
   }
+
+
+  /**
+   * Fixes the main class of this neuron
+   * @param main Optional class name, if not specified, class is computed
+   *             from represented inputs
+   */
+  def fixMainClass (main: String = null): Unit = {
+    if (main != null) representedClass = main
+    else representedClass = findMainClass._1
+  }
+
+
+  /**
+   * Provides the current main class of this neuron
+   * @return Main class name
+   */
+  def mainClass: String = representedClass
 
 
   /**
    * Restarts the represented inputs of this neuron
    */
-  def restartRepresented (): Unit = representedInputs = representedInputs.empty
+  def clearRepresented(): Unit = representedInputs = representedInputs.empty
 
 
   /**

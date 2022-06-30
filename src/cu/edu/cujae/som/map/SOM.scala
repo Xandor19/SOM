@@ -21,9 +21,8 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
    */
   var dimensionality: Int = 0
   var decRadius: Double = neighRadius
-  var roughTrainingIters: Int = 0
-  var mapAvgMQE: Double = 0
-  var mapMQEDeviation: Double = 0
+  var avgMQE: Double = 0
+  var sdMQE: Double = 0
 
 
   /**
@@ -50,6 +49,17 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
 
 
   /**
+   * Self-organization process, which lasts for a maximum number
+   * of iterations or until a tolerable QE is reached
+   *
+   * @param vectorSet Set of vectors that will be used for training
+   * @param mapConfig Configuration of the SOM which includes the training
+   *                  settings
+   */
+  def organizeMap (vectorSet: VectorSet, mapConfig: MapConfig): Unit
+
+
+  /**
    * Finds the best matching unit of a given input, that is,
    * the neuron for which the quantification error (QE), namely
    * distance, is minimum to the input vector
@@ -71,21 +81,19 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
   def clusterInput (inputVector: InputVector): Neuron = {
     // Find the BMU and cluster the input in it
     val bmu = findBMU(inputVector.vector)
-    bmu._1.adoptInput(inputVector, bmu._2)
+    bmu._1.representInput(inputVector, bmu._2)
 
     bmu._1
   }
 
 
   /**
-   * Self-organization process, which lasts for a maximum number
-   * of iterations or until a tolerable QE is reached
-   *
-   * @param vectorSet Set of vectors that will be used for training
-   * @param mapConfig Configuration of the SOM which includes the training
-   *                  settings
+   * Updates neighborhood radius in inverse-of-time function
+   * @param iter Current iteration
    */
-  def organizeMap (vectorSet: VectorSet, mapConfig: MapConfig): Unit
+  def updateRadius (iter: Int, totIters: Float): Double = {
+    neighRadius * (1 - iter / totIters)
+  }
 
 
   /**
@@ -93,18 +101,18 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
    * represented in the map with its BMU
    */
   def updateAvMQE (): Unit = {
-    mapAvgMQE = lattice.neurons.flatten.flatMap(x => x.representedInputs.values).sum /
+    avgMQE = lattice.neurons.flatten.flatMap(x => x.representedInputs.values).sum /
       lattice.neurons.flatten.map(z => z.representedInputs.size).sum
   }
 
 
   /**
-   * Updates the MQE standard deviation of the network by accumulating the difference
+   * Updates the MQE standard of deviation of the network by accumulating the difference
    * between the QE of each input with its BMU and the average MQE
    */
-  def updateMQEDeviation (): Unit = {
-    mapMQEDeviation = math.sqrt(lattice.neurons.flatten.filter(n => n.representedInputs.nonEmpty).
-      flatMap(x => x.representedInputs.map(y => math.pow(y._2 - mapAvgMQE, 2))).sum /
+  def updateSdMQE(): Unit = {
+    sdMQE = math.sqrt(lattice.neurons.flatten.filter(n => n.representedInputs.nonEmpty).
+      flatMap(x => x.representedInputs.map(y => math.pow(y._2 - avgMQE, 2))).sum /
              (lattice.neurons.flatten.map(z => z.representedInputs.size).sum - 1))
   }
 
@@ -116,7 +124,7 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
    * @return Value of the threshold
    */
   def normalityThreshold: Double = {
-    3 * (mapAvgMQE + mapMQEDeviation)
+    avgMQE + 3 * sdMQE
   }
 
 
@@ -133,11 +141,14 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
 
 
   /**
-   * Updates neighborhood radius in inverse-of-time function
-   * @param iter Current iteration
+   * Provides this maps's u-matrix, e.g, a matrix in which each cell
+   * represents the average distance of a neuron and its neighbors
+   * @return Bi-dimensional float array with the u-matrix
    */
-  def updateRadius (iter: Int): Unit = {
-    decRadius = neighRadius * (1 - iter / roughTrainingIters.toFloat)
+  def uMatrix: Array[Array[Double]] = {
+    lattice.neurons.map(x => x.map(neuron => {
+      neuron.neighbors.map(neigh => distanceFn(neuron.weights, neigh.weights)).sum / neuron.neighbors.size
+    }))
   }
 }
 

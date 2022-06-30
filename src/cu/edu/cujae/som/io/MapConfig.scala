@@ -1,5 +1,7 @@
 package cu.edu.cujae.som.io
 
+import cu.edu.cujae.som.map.{SOM, SOMType}
+
 import scala.util.Random
 
 /**
@@ -24,18 +26,19 @@ import scala.util.Random
  * @param tolerance Tolerable average MQE error (on-line SOM) or average variation
  *                  ratio of a weight vector (batch SOM) to reach
  * @param runs Number of models to create and evaluate
- * @param initSeed Seed for traceable random initialization
- * @param shuffleSeed Seed for traceable sets shuffling
+ * @param randInitSeed Seed for traceable random initialization
+ * @param randShuffleSeed Seed for traceable sets shuffling
+ * @param task Task to perform with loaded config
  * @param resultsExportPath Path to export the results of the training/testing
  * @param trainingExportPath Path to export the results of a new trained SOM
  */
 class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Double, val trainingProp: Double,
-                 val normalize: Boolean = false, val somType: String, val latDistrib: String, var width: Int = 0,
-                 var height: Int = 0, var neighRadius: Int = 0, val learnFactor: Double, val tuneFactor: Double = 0,
-                 val initFn: String, val distanceFn: String, val neighFn: String,
+                 val normalize: Boolean = true, val somType: String, val latDistrib: String, var width: Int = 0,
+                 var height: Int = 0, var neighRadius: Int = 0, val learnFactor: Double = 0,
+                 val tuneFactor: Double = 0, val initFn: String, val distanceFn: String, val neighFn: String,
                  var trainIter: Int = 0, var tuneIter: Int = 0, var tolerance: Double = 0, val runs: Int = 1,
-                 val initSeed: Long = Random.nextInt(), val shuffleSeed: Long = Random.nextInt(),
-                 val resultsExportPath: String, val trainingExportPath: String = "") {
+                 val randInitSeed: Long = Random.nextInt(), val randShuffleSeed: Long = Random.nextInt(), val task: String,
+                 var resultsExportPath: String, var trainingExportPath: String = "") {
 
   /*
    * Provides a string with the field names for new export files
@@ -46,12 +49,37 @@ class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Doubl
                           "Training iters,Tuning iters,Tolerance,Models created,Init seed,Set shuffling seed"
 
   /*
+   * Class fields
+   */
+  private val randomizedInitSeed = new Random()
+  randomizedInitSeed.setSeed(randInitSeed)
+
+  private val randomizedShuffledSeed = new Random()
+  randomizedShuffledSeed.setSeed(randShuffleSeed)
+
+
+  /**
    * Provides a string with current instance values to use
    */
   def parameters: String = List(dataset, setProp, trainingProp, normalize, somType, latDistrib, width, height,
                                 neighRadius, learnFactor, tuneFactor, initFn, distanceFn, neighFn,
-                                trainIter, tuneIter, tolerance, runs, initSeed, shuffleSeed).mkString(",")
+                                trainIter, tuneIter, tolerance, runs, randInitSeed, randShuffleSeed).mkString(",")
 
+
+  /**
+   * Provides a new seed for random initialization from the
+   * random sequence of the seed for random inits
+   * @return Random int
+   */
+  def initSeed: Int = randomizedInitSeed.nextInt
+
+
+  /**
+   * Provides a new seed for shuffling from the random sequence of the seed
+   * for shuffling
+   * @return Random int
+   */
+  def shuffleSeed: Int = randomizedShuffledSeed.nextInt
 
   /**
    * Completes the configuration parameters which could be automatically
@@ -59,17 +87,44 @@ class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Doubl
    * Params are assumed to be left for auto setup if width and/or height
    * are left as default (0)
    *
-   * @param width Width of the lattice
-   * @param height Height of the lattice
-   * @param rad Neighborhood radius
-   * @param trainIter Amount of rough training iters
-   * @param tuneIter Amount of tuning iters (on-line SOM)
+   * @param setSize Amount of instances of the dataset
+   *                 //TODO make auto config procces built in method, not in SOMController by receiving training size
    */
-  def completeConfig (width: Int, height: Int, rad: Int, trainIter: Int, tuneIter: Int): Unit = {
-    this.width = width
-    this.height = height
-    this.neighRadius = rad
-    if (this.trainIter == 0) this.trainIter = trainIter
-    if (tuneFactor != 0 && tuneIter == 0) this.tuneIter = tuneIter
+  def completeConfig (setSize: Int): Unit = {
+    var neurons: Double = width * height
+    // Size auto configuration is required
+    if (width == 0 || height == 0) {
+      // Obtains amount of neurons from input
+      neurons = math.sqrt(setSize) * 5
+      // Adapts lattice distribution to the number of neurons
+      height = math.sqrt(neurons).toInt
+      width = if (neurons - math.pow(height, 2) > height / 2) height + 1
+              else if (neurons - math.pow(height, 2) > height * 2) { height += 1; height }
+              else height
+      // Obtains neighborhood radius from the distribution
+      neighRadius = width / 2 + 1
+    }
+    // Number of training iters is required
+    if (trainIter == 0) {
+      if (somType == SOMType.onlineSOM) {
+        // Value for on-line training
+        trainIter = (neurons * 50).toInt
+      }
+      // Value for batch training
+      else trainIter = 200
+    }
+    if (tuneIter == 0 && tuneFactor > 0) {
+      // Tuning stage adjust for on-line training
+      tuneIter = (neurons * 500).toInt
+    }
   }
+
+
+  def exportTraining: Boolean = resultsExportPath != ""
+}
+
+
+object Tasks {
+  val classification = "classif"
+  val anomaly = "detect"
 }

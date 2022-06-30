@@ -7,7 +7,7 @@ import scala.util.Random
  * @param features Definition of each dimension of the vectors
  * @param vectors Input vectors
  */
-class RandomVectorSet (features: Array[String], vectors: List[InputVector], seed: Long)
+class RandomVectorSet (features: Array[String], vectors: List[InputVector], seed: Long = Random.nextInt)
                       extends VectorSet (features, vectors) {
 
   /*

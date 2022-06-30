@@ -4,12 +4,12 @@ import java.io.FileNotFoundException
 import java.util.Formatter
 
 import cu.edu.cujae.som.data.InputVector
+import cu.edu.cujae.som.map.SOM
 
 /**
  * Provides functions to load input vectors from different sources
  */
 object ReaderWriter {
-
 
   /**
    * Loads a generic csv file into a list of records
@@ -36,15 +36,14 @@ object ReaderWriter {
    * column being the class to which the instance belongs:
    * value1, value2, value3, ..., valueN, class (str)
    *
-    // Closes file
    * csv must always have class column, for unclassified instances,
    * leave class field as " "
    *
    * @param path Path to csv file
    * @param separator Columns separator of the csv
-   * @return Tuple (inputs dimension, input features, inputs)
+   * @return Tuple of (inputs dimension, input features, inputs)
    */
-  def loadSetFromCSV (path: String, separator: Char): (Array[String], List[InputVector]) = {
+  def loadSet (path: String, separator: Char): (Array[String], List[InputVector]) = {
     // Reads csv
     val records = loadCSV (path, separator)
     // Obtains features names
@@ -53,62 +52,36 @@ object ReaderWriter {
     val dimensionality = features.length - 1
     // Empty vectors list
     var vectors = List.empty[InputVector]
+    //
+    var rowIndex = 1
 
     // Iterates over all inputs
-    for (i <- records.tail) {
+    records.tail.foreach(i => {
       // Clears current input into separated no-spaced columns
       val cleared = i.split(separator).map(_.trim)
 
       // Creates this input's vector by splitting the features values from the labeled class
-      vectors = vectors.appended(new InputVector(dimensionality,
+      vectors = vectors.appended(new InputVector(rowIndex, dimensionality,
                                                  cleared.slice(0, dimensionality).map(_.toDouble), cleared.last))
-    }
+      rowIndex += 1
+    })
     (features, vectors)
   }
 
 
-  def loadSetFromJSON (): (Int, List[String], List[InputVector]) = {
-    (0, List.empty[String], List.empty[InputVector])
-  }
-
-
-  def loadSetFromXML (): (Int, List[String], List[InputVector]) = {
-    (0, List.empty[String], List.empty[InputVector])
-  }
-
-  //TODO define how to import/export the metrics (functions, factors) used in the concrete map
-
   /**
-   * Loads a set of pre-trained weight vectors from a csv file
+   * Loads a set of pre-trained weight vectors from a json file
    *
-   * Weight vector must be ordered in width-then-height indexation,
-   * namely, each row is presented sequentially
-   *
-   * First row must be the properties of the map: width, height
-   * and vector dimensionality, in that order
-   *
-   * @param path Path to csv file
-   * @param separator Columns separator of the csv
+   * @param path Path to configuration file
    * @return
    */
-  def loadTrainingFromCSV (path: String, separator: Char): (Array[Int], List[Array[Double]]) = {
-    // Reads csv
-    val records = loadCSV(path, separator)
-    // Obtains the map's topography
-    val data = records.head.split(separator).map(_.trim.toInt)
-    // Set of weight vectors
-    var vectors = List.empty[Array[Double]]
-
-    for (i <- records.tail) {
-      // Clears current input to a real-values vector
-      vectors = vectors.appended(i.split(separator).map(_.trim.toDouble))
-    }
-    (data, vectors)
+  def loadTraining (path: String): SOM = {
+    null
   }
 
 
   /**
-   * Export a pre-trained set of weight vectors to a csv file
+   * Export a pre-trained set of weight vectors to a json file
    *
    * The first row of the csv contains the SOM's distribution data,
    * that is, wight, height and vector dimensionality, in that order
@@ -118,47 +91,44 @@ object ReaderWriter {
    *
    * //@param path Path to csv file
    * //@param som Trained Self-Organizing Map to export
-
-  def exportTrainingToCSV (path: String, som: SOM): Unit = {
-    val writer = new Formatter(path)
-
-    // Writes the SOM's distribution data
-    writer.format("%d, %d, %d\n", som.width, som.height, som.dimensionality)
-    // Traverses each neuron obtaining its weight vector
-    som.neurons.flatten.foreach(n => {
-      // Converts this weight vector to a csv line by adding commas between the dimensions
-      writer.format("%s\n", n.weights.mkString(", "))
-      writer.flush()
-    })
-    writer.close()
-  }*/
+   */
+  def exportTraining (config: MapConfig, som: SOM): Unit = {
+  }
 
 
   /**
    * Exports the results of a experiment to a csv
-   * @param path
-   * @param sep
-   * @param data
+   * @param path Destination file of the export
+   * @param sep Csv separator
+   * @param data Resulting parameters to export
    */
   def exportExperimentResult (path: String, sep: Char, data: List[ExperimentData]): Unit = {
+    // List to store old file's content
     var existing = List.empty[String]
     var prev = true
 
     try {
-      existing = existing appendedAll loadCSV(path, sep)
+      // Tries to load the destination file
+      existing = existing.appendedAll(loadCSV(path, sep))
     }
     catch {
+      // The destination file has not been created
       case _: FileNotFoundException => prev = false
     }
     val writer = new Formatter(path)
 
+    // Creates the destination file and sets the headers
     if (!prev) writer.format("%s\n", data.head.attributes)
 
+    // Appends current export data to the existing one (if exists)
     existing = existing appendedAll data.map(x => x.data)
 
+    // Writes the data
     existing.foreach(x => {
       writer.format("%s\n", x)
-      writer.flush()
     })
+    writer.flush()
+    // Closes file
+    writer.close()
   }
 }
