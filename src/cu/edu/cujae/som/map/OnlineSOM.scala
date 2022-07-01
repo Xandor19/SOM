@@ -36,7 +36,7 @@ class OnlineSOM (lattice: Lattice, val learningFactor: Double, val tuningFactor:
     lattice.neurons.flatten.foreach(x => x.setTuningRate(tuningFactor))
 
     // Tune the network for a number of iterations
-    tuning(vectorSet, mapConfig.tuneIter, mapConfig.tolerance)
+    tuning(vectorSet, mapConfig.tuneIter)
 
     // Once the map is organized, present inputs one last time to form clusters
     vectorSet.vectors.foreach(x => clusterInput(x))
@@ -83,9 +83,8 @@ class OnlineSOM (lattice: Lattice, val learningFactor: Double, val tuningFactor:
    * MQE has been reached
    * @param vectorSet The set used for the training
    * @param tuningIters The maximum number of iters in the stage
-   * @param avMQETol The tolerable average MQE of the map
    */
-  def tuning (vectorSet: VectorSet, tuningIters: Int, avMQETol: Double): Unit = {
+  def tuning (vectorSet: VectorSet, tuningIters: Int): Unit = {
     var i = 0
 
     do {
@@ -109,7 +108,7 @@ class OnlineSOM (lattice: Lattice, val learningFactor: Double, val tuningFactor:
       // Obtains average MQE
       avgMQE /= vectorSet.vectors.size
       i += 1
-    } while (avgMQE > avMQETol && i < tuningIters)
+    } while (i < tuningIters)
   }
 
 

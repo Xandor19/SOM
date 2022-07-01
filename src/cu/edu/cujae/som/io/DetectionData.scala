@@ -9,17 +9,17 @@ package cu.edu.cujae.som.io
  * @param avFalseNeg Amount of anomalies missed
  * @param avTrueNeg Amount of normal instances correctly ignored
  * @param avFalsePos Amount of normal instances incorrectly marked as anomalies
+ * @param confidence Confidence value of the SOM decision
+ * @param sensibility How sensible the SOM is to anomalies
+ * @param accuracy Overall correctness of the SOM decisions
  * @param elapsedTime Running time of the test
  */
 class DetectionData (config: MapConfig, trainAvMQE: Double, trainAvSD: Double, avTruePos: Double,
-                     avFalseNeg: Double, avTrueNeg: Double, avFalsePos: Double, elapsedTime: String)
+                     avFalseNeg: Double, avTrueNeg: Double, avFalsePos: Double, confidence: Double, sensibility: Double,
+                     accuracy: Double, elapsedTime: String)
                     extends ExperimentData (config, trainAvMQE, trainAvSD, elapsedTime) {
   private val totAnom = avTruePos + avFalseNeg
   private val totNorm = avTrueNeg + avFalsePos
-  private val tot = totAnom + totNorm
-  private val confidence = avTruePos / (avTruePos + avFalsePos)
-  private val sensibility = avTruePos / totAnom
-  private val accuracy = (avTruePos + avTrueNeg) / tot
 
   /**
    * Provides a string with the field names for new export files

@@ -1,7 +1,7 @@
 package cu.edu.cujae.som.map
 
 import cu.edu.cujae.som.data.{InputVector, VectorSet}
-import cu.edu.cujae.som.io.MapConfig
+import cu.edu.cujae.som.io.{MapConfig, MapIO}
 
 import scala.util.Random
 
@@ -23,6 +23,16 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
   var decRadius: Double = neighRadius
   var avgMQE: Double = 0
   var sdMQE: Double = 0
+
+
+  def this (parameters: MapIO) {
+    this(LatticeFactory.createLattice(parameters.latDistrib, parameters.width, parameters.height), 0,
+         FunctionCollector.distanceFactory(parameters.distFn), null)
+
+    lattice.loadLattice(parameters)
+    avgMQE = parameters.avMQE
+    sdMQE = parameters.sdMQE
+  }
 
 
   /**

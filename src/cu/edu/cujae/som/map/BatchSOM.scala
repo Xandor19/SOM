@@ -55,6 +55,7 @@ class BatchSOM (lattice: Lattice, neighRadius: Double, distanceFn: (Array[Double
     // Assigns each input to its BMU
     vectorSet.iterator.foreach(x => clusterInput(x))
 
+    updateAvMQE()
     updateSdMQE()
   }
 

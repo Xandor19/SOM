@@ -5,18 +5,20 @@ import cu.edu.cujae.som.data.InputVector
 
 /**
  * Class to represent a Self-Organizing Map neuron
- *
  * @param xPos This neuron's x coordinate in the grid
  * @param yPos This neuron's y coordinate in the grid
  * @param weightVector This neuron's weight vector
+ * @param hits Amount of inputs that were represented by the neuron, default to 0
+ * @param balance Amount of inputs and amount of different classes represented by the neuron, default to (0, 0)
+ * @param representedClass Main class of the neuron, default to ("None", 0)
  */
-class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double]) {
+class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double], var hits: Int = 0,
+              var balance: (Int, Int) = (0, 0), var representedClass: String = "None") {
   /*
    * Class fields
    */
-  var tuningRate = 1.0
+  var tuningRate = 0.0
   var representedInputs = Map.empty[InputVector, Double]
-  var representedClass = "None"
   var neighbors = List.empty[Neuron]
 
 
@@ -71,49 +73,83 @@ class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double])
    */
   def averageQE: Double = {
     if (representedInputs.nonEmpty) representedInputs.values.sum / representedInputs.size
-    else -1
+    else Double.NaN
   }
 
 
   /**
+   * Updates the hit count of this neuron, the number of inputs that it represents
+   * @param memory Optional parameter to indicate if previous hits must be accumulated
+   *               to current (true) or are discarded (false). False by default
+   */
+  def updateHits (memory: Boolean = false): Unit = {
+    if (memory) hits += representedInputs.size
+    else hits = representedInputs.size
+  }
+
+
+  /**
+   * Provides the amount of inputs represented by this neuron
+   * @return
+   */
+  def hitCount: Int = hits
+
+
+  /**
    * Counts how many classes (e.g, how many different "classification" string attribute)
-   * and how many instances of each one this neuron represents
+   * and how many instances of each one currently this neuron physically represents
    * @return Map with the classes' names as the keys and the amount of inputs as values
    */
   def representedClasses: Map[String, Int] = {
-    // Counts how many inputs are for each class
+    // Counts how many inputs are of each class
     Utils.classCount(representedInputs.keys)
   }
 
 
   /**
-   * Obtains the most frequent class of those represented in this neuron
-   * @return Name of the most frequent class
+   * Provides the classes balance of the neuron
+   * @return Tuple of (amount of inputs, amount of classes)
    */
-  def findMainClass: (String, Int) = {
-    // Looks for the most frequent class
-    if (representedInputs.nonEmpty) representedClasses.toList.maxBy(x => x._2)
-    // This neuron does not represent any input
-    else (representedClass, 0)
+  def classesBalance: (Int, Int) = {
+    balance
   }
 
 
   /**
-   * Fixes the main class of this neuron
-   * @param main Optional class name, if not specified, class is computed
-   *             from represented inputs
+   * Updates this neurons classes balance
    */
-  def fixMainClass (main: String = null): Unit = {
-    if (main != null) representedClass = main
-    else representedClass = findMainClass._1
+  def updateBalance (): Unit = {
+    // Obtains current pair of amount of inputs and amount of classes
+    balance = (representedInputs.size, representedClasses.size)
   }
 
 
   /**
    * Provides the current main class of this neuron
-   * @return Main class name
+   * @return Tuple of (class name, amount of inputs)
    */
-  def mainClass: String = representedClass
+  def mainClass: String = {
+    if (representedClass == "None") {
+      // If no class is represented, attempts to update main class state
+      findMainClass()
+    }
+    representedClass
+  }
+
+
+  /**
+   * Updates the most frequent class of those represented in this neuron
+   */
+  def findMainClass (): Unit = {
+    // Looks for the most frequent class
+    if (representedInputs.nonEmpty) {
+      representedClass = representedClasses.toList.maxBy(x => x._2)._1
+    }
+    // This neuron does not represent any input
+    else {
+      representedClass = "None"
+    }
+  }
 
 
   /**
@@ -141,16 +177,16 @@ class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double])
   }
 
 
-  def setTuningRate (value: Double): Unit = {
-    this.tuningRate = value
-  }
-
-
   /**
    * Updates this neuron's tuning factor when is selected as BMU
    * during the tuning stage
    */
   def updateTuningRate (): Unit = {
     tuningRate = tuningRate / (1 + tuningRate)
+  }
+
+
+  def setTuningRate (tune: Double): Unit = {
+    if (tune > 0 && tune <= 1) tuningRate = tune
   }
 }

@@ -1,11 +1,10 @@
 package cu.edu.cujae.som.io
 
-import java.io.FileNotFoundException
+import java.io.{File, FileInputStream, FileNotFoundException, FileOutputStream}
 import java.util.Formatter
 
 import cu.edu.cujae.som.data.InputVector
-import cu.edu.cujae.som.map.SOM
-
+import net.maritimecloud.internal.core.javax.json.{Json, JsonObject}
 /**
  * Provides functions to load input vectors from different sources
  */
@@ -75,24 +74,61 @@ object ReaderWriter {
    * @param path Path to configuration file
    * @return
    */
-  def loadTraining (path: String): SOM = {
-    null
+  def loadTraining (path: String): MapIO = {
+    val reader = Json.createReader(new FileInputStream(path)).readObject()
+
+    val dataset = reader.getString("dataset")
+    val task = reader.getString("task")
+    val somType = reader.getString("type")
+    val latDistrib = reader.getString("distrib")
+    val width = reader.getInt("width")
+    val height = reader.getInt("height")
+    val normalized = reader.getBoolean("normalized")
+    val distFn = reader.getString("dist_funct")
+    val avMQE = reader.getString("av_mqe").toDouble
+    val sdMQE = reader.getString("mqe_sd").toDouble
+    val neurons = reader.getJsonArray("neurons").toArray.
+                                                 map(_.asInstanceOf[JsonObject]).
+                                                 map(y => (y.getString("vector"), y.getInt("hits"),
+                                                           y.getString("balance"), y.getString("class")))
+
+    new MapIO(dataset, task, somType, latDistrib, width, height, normalized, distFn, avMQE, sdMQE, neurons)
   }
 
 
   /**
    * Export a pre-trained set of weight vectors to a json file
-   *
-   * The first row of the csv contains the SOM's distribution data,
-   * that is, wight, height and vector dimensionality, in that order
-   *
-   * Vectors are write in wight-then-height order, that is, each
-   * row is exported sequentially before going to the next row
-   *
-   * //@param path Path to csv file
-   * //@param som Trained Self-Organizing Map to export
+   * @param path Path of the export file
+   * @param data Data of the model to export
    */
-  def exportTraining (config: MapConfig, som: SOM): Unit = {
+  def exportTraining (path: String, data: MapIO): Unit = {
+    val factory = Json.createBuilderFactory(null)
+    val neurons = factory.createArrayBuilder()
+
+    data.neurons.foreach(x => {
+      neurons.add(factory.createObjectBuilder().
+                  add("vector", x._1).
+                  add("hits", x._2).
+                  add("balance", x._3).
+                  add("class", x._4).
+                  build())
+    })
+    val export = factory.createObjectBuilder().
+                 add("dataset", data.dataset).
+                 add("task", data.task).
+                 add("type", data.somType).
+                 add("distrib", data.latDistrib).
+                 add("width", data.width).
+                 add("height", data.height).
+                 add("normalized", data.normalized).
+                 add("dist_funct", data.distFn).
+                 add("av_mqe", data.avMQE).
+                 add("mqe_sd", data.sdMQE).
+                 add("neurons", neurons.build()).
+                 build()
+
+    val writer = Json.createWriter(new FileOutputStream(new File(path)))
+    writer.write(`export`)
   }
 
 

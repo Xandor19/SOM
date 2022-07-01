@@ -1,5 +1,7 @@
 package cu.edu.cujae.som.map
 
+import cu.edu.cujae.som.io.MapIO
+
 /**
  * Class to represent a bi-dimensional SOM Lattice
  *
@@ -21,6 +23,20 @@ abstract class Lattice (val width: Int, val height: Int) {
   def constructLattice (vectors: Iterable[Array[Double]]): Unit
 
 
+  def loadLattice (neuronData: MapIO): Unit = {
+    val neuIt = neuronData.neurons.iterator
+
+    for (i <- 0 until width; j <- 0 until height) {
+      val current = neuIt.next
+      val vector = current._1.split(",").map(_.toDouble)
+      val splitBal = current._3.split(",").map(_.toInt)
+      val balance = (splitBal.head, splitBal.last)
+
+      neurons(i)(j) = new Neuron(i, j, vector, current._2, balance, current._3)
+    }
+  }
+
+
   /**
    * Provides the weight vectors of the neurons of the lattice, in horizontal order
    * @return Array of vectors (array of float) with each row representing a weight vector
@@ -34,7 +50,7 @@ abstract class Lattice (val width: Int, val height: Int) {
    * @return Bi-dimensional Int array in which each (i, j) represents the amount
    *         of inputs clustered in the neuron in that position's
    */
-  def neuronHits: Array[Array[Int]] = neurons.map(x => x.map(y => y.representedInputs.size))
+  def neuronHits: Array[Array[Int]] = neurons.map(x => x.map(y => y.hitCount))
 
 
   /**
@@ -45,7 +61,7 @@ abstract class Lattice (val width: Int, val height: Int) {
    *         of those hits
    */
   def classesBalance: Array[Array[(Int, Int)]] = {
-    neurons.map(x => x.map(y => (y.representedInputs.size, y.representedClasses.size)))
+    neurons.map(x => x.map(y => y.classesBalance))
   }
 
 
@@ -55,7 +71,7 @@ abstract class Lattice (val width: Int, val height: Int) {
    * @return Bi-dimensional String array in which each (i, j) represents the main
    *         class of the neuron in that position
    */
-  def mainClasses: Array[Array[String]] = neurons.map(x => x.map(y => y.findMainClass._1))
+  def mainClasses: Array[Array[String]] = neurons.map(x => x.map(y => y.mainClass))
 
 
   /**

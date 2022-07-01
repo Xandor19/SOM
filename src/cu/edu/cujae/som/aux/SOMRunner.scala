@@ -10,13 +10,13 @@ object SOMRunner {
   def main(args: Array[String]): Unit = {
     val path = "./Datasets/reduced_card_fraud_normalised_less_anomalies.csv"
     val sep = ','
-    val modelExportPath = ""
+    val modelExportPath = "./Pre-trained/"
     val resultsExportPath = "./Results/"
     val setProp = 1
-    val trainingSetProp = 0.8
+    val trainingSetProp = 0.6
     var normalize = false
     val task = Tasks.anomaly
-    var experiments = 30
+    var experiments = 1
     var somType = SOMType.batchSOM
     var latDistrib = LatticeDistribution.rectangular
     var latWidth = 0

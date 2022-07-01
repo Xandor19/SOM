@@ -31,7 +31,6 @@ object FunctionCollector {
   def distanceFactory (dist: String): (Array[Double], Array[Double]) => Double = {
     if (dist == DistanceFns.simpleEuclidean) euclideanDistance
     else if (dist == DistanceFns.squaredEuclidean) squaredEuclideanDistance
-    else if (dist == DistanceFns.manhattan) manhattanDistance
     else null
   }
 
@@ -115,17 +114,6 @@ object FunctionCollector {
 
 
   /**
-   * Computes the manhattan distance between two vectors
-   * @param arr1 1st vector
-   * @param arr2 2do vector
-   * @return
-   */
-  def manhattanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
-    (arr1 zip arr2).map(x => math.abs(x._1 - x._2)).sum
-  }
-
-
-  /**
    * Neighborhood function which gradually reduces the impact of an input
    * on the neuron depending of its relative position to the BMU
    * Uses the gaussian function:
@@ -163,7 +151,6 @@ object InitFns {
 object DistanceFns {
   val simpleEuclidean = "Euclidean"
   val squaredEuclidean = "Squared Euclidean"
-  val manhattan = "Manhattan"
 }
 
 

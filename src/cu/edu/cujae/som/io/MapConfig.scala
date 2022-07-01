@@ -23,8 +23,6 @@ import scala.util.Random
  * @param neighFn Neighborhood function to use
  * @param trainIter Number of rough training iters
  * @param tuneIter Number of iters for tuning stage (on-line SOM)
- * @param tolerance Tolerable average MQE error (on-line SOM) or average variation
- *                  ratio of a weight vector (batch SOM) to reach
  * @param runs Number of models to create and evaluate
  * @param randInitSeed Seed for traceable random initialization
  * @param randShuffleSeed Seed for traceable sets shuffling
@@ -36,7 +34,7 @@ class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Doubl
                  val normalize: Boolean = true, val somType: String, val latDistrib: String, var width: Int = 0,
                  var height: Int = 0, var neighRadius: Int = 0, val learnFactor: Double = 0,
                  val tuneFactor: Double = 0, val initFn: String, val distanceFn: String, val neighFn: String,
-                 var trainIter: Int = 0, var tuneIter: Int = 0, var tolerance: Double = 0, val runs: Int = 1,
+                 var trainIter: Int = 0, var tuneIter: Int = 0, val runs: Int = 1,
                  val randInitSeed: Long = Random.nextInt(), val randShuffleSeed: Long = Random.nextInt(), val task: String,
                  var resultsExportPath: String, var trainingExportPath: String = "") {
 
@@ -46,7 +44,7 @@ class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Doubl
   val attributes: String = "Dataset,Dataset prop,Training Prop,Data normalized,SOM type,Lattice " +
                           "distribution,Lattice width,Lattice height,Neighborhood radius,Learning factor,Tuning " +
                           "factor,Initialization,Distance,Neighborhood function," +
-                          "Training iters,Tuning iters,Tolerance,Models created,Init seed,Set shuffling seed"
+                          "Training iters,Tuning iters,Models created,Init seed,Set shuffling seed"
 
   /*
    * Class fields
@@ -63,7 +61,7 @@ class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Doubl
    */
   def parameters: String = List(dataset, setProp, trainingProp, normalize, somType, latDistrib, width, height,
                                 neighRadius, learnFactor, tuneFactor, initFn, distanceFn, neighFn,
-                                trainIter, tuneIter, tolerance, runs, randInitSeed, randShuffleSeed).mkString(",")
+                                trainIter, tuneIter, runs, randInitSeed, randShuffleSeed).mkString(",")
 
 
   /**
@@ -88,7 +86,6 @@ class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Doubl
    * are left as default (0)
    *
    * @param setSize Amount of instances of the dataset
-   *                 //TODO make auto config procces built in method, not in SOMController by receiving training size
    */
   def completeConfig (setSize: Int): Unit = {
     var neurons: Double = width * height
@@ -106,10 +103,7 @@ class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Doubl
     }
     // Number of training iters is required
     if (trainIter == 0) {
-      if (somType == SOMType.onlineSOM) {
-        // Value for on-line training
-        trainIter = (neurons * 50).toInt
-      }
+      if (somType == SOMType.onlineSOM) trainIter = 1000
       // Value for batch training
       else trainIter = 200
     }
@@ -125,6 +119,6 @@ class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Doubl
 
 
 object Tasks {
-  val classification = "classif"
-  val anomaly = "detect"
+  val clustering = "clustering"
+  val anomaly = "anomaly"
 }
