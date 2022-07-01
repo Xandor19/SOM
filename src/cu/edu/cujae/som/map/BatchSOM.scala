@@ -1,103 +1,95 @@
 package cu.edu.cujae.som.map
 
-import cu.edu.cujae.som.aux.SOMController
 import cu.edu.cujae.som.data.VectorSet
 import cu.edu.cujae.som.io.MapConfig
 
 /**
- * Class to represent a batch training Self-Organizing Map
- * @param lattice The lattice of neurons
- * @param neighRadius Neighborhood radius
- * @param distanceFn Distance metric to use
- * @param neighborhoodFn Neighborhood function
+ * Clase para representar un SOM con enfoque de entrenamiento en batch
+ *
+ * @param _lattice Grilla del mapa
+ * @param _neighRadius Radio de vecindad inicial
+ * @param _distanceFn Funcion de distancia a utilizar
+ * @param _neighborhoodFn Funcion de vecindad a utilizar en el entrenamiento
  */
-class BatchSOM (lattice: Lattice, neighRadius: Double, distanceFn: (Array[Double], Array[Double]) => Double,
-                neighborhoodFn: (Float, Float, Float, Float, Double) => Double)
-               extends SOM (lattice, neighRadius, distanceFn, neighborhoodFn) {
+class BatchSOM (_lattice: Lattice, _neighRadius: Double, _distanceFn: (Array[Double], Array[Double]) => Double,
+                _neighborhoodFn: (Float, Float, Float, Float, Double) => Double)
+               extends SOM (_lattice, _neighRadius, _distanceFn, _neighborhoodFn) {
 
   /**
-   * Self-organization process, which lasts for a maximum number
-   * of iterations or the variation of the map is tolerable
+   * Proceso de auto-organizacion a realizar mediante el enfoque en batch
+   * por un numero especificado de iteraciones
    *
-   * @param vectorSet Set of vectors that will be used for training
-   * @param mapConfig Configuration of the SOM which includes the training
-   *                  settings
+   * @param vectorSet Conjunto de vectores de entrada a emplear en el entrenamiento
+   * @param mapConfig Parametros de configuracion del entrenamiento
    */
   override def organizeMap(vectorSet: VectorSet, mapConfig: MapConfig): Unit = {
-    val trainIters = mapConfig.trainIter
-    // Obtains stop condition
-    //var stopTol = mapConfig.tolerance
-    // Prepares iteration flags
-    var t = 0
-    var prevAvMQE = 0D
+    var decRadius = _neighRadius
 
-    do {
-      // Obtains previous average MQE of the map
-      //prevAvMQE = avgMQE
-      // Obtains set iterator
+    // Obtiene la cantidad de iteraciones
+    val trainIters = mapConfig.trainIter
+
+    for (t <- 0 until trainIters) {
+      // Obtiene el iterador sobre los vectores de entrada
       val setIt = vectorSet.iterator
 
-      // Assigns each input to its BMU
+      // Agrupa cada vector de entrada en su BMU
       setIt.foreach(x => clusterInput(x))
 
-      // Applies learning to each neuron of the map
-      lattice.neurons.flatten.foreach(x => applySingleBatch(x, t))
+      // Actualiza los vectores de pesos de cada neurona
+      lattice.neurons.flatten.foreach(x => applySingleBatch(x, decRadius))
 
-      // Updates values for next iteration
+      // Actualiza el radio de vecindad
       decRadius = updateRadius(t, trainIters)
-      //updateAvMQE()
 
-      // Resets assigned inputs
+      // Reinicia el agrupamiento de la red
       lattice.neurons.flatten.foreach(x => x.clearRepresented())
-      t += 1
-    } while (/**(prevAvMQE - mapAvgMQE) > stopTol &&*/ t < trainIters )
+    }
 
-    // Assigns each input to its BMU
+    // Asigna cada entrada a su BMU por ultima vez
     vectorSet.iterator.foreach(x => clusterInput(x))
 
-    updateAvMQE()
-    updateSdMQE()
+    // Actualiza las metricas de la red
+    somReady()
   }
 
 
   /**
-   * Applies batch training to a individual neuron in the lattice,
-   * applying a neighboring function to reduce the changes as the
-   * neurons get father from the BMU
+   * Aplica el entrenamiento en batch a una unica neurona de la grilla
+   * calculando la media de los vectores representados por la red ponderada
+   * por la funcion de vecindad entre la neurona y la BMU de cada vector
    *
-   * Computes the weighted mean of the inputs clustered in the map
-   *
-   * Uses the formula
+   * Emplea la formula
    *
    * wi(t + 1) = (sum from j (nj * hji(t) xmj)) / (sum from j (nj * hji(t)))
    *
-   * Where nj is the amount of vectors represented by a neuron j, hji is the
-   * neighborhood function between neuron to update i and current neuron j
-   * and xmj is the mean of the vectors represented by neuron j
-   * @param current Current neuron to train
-   * @param epoch Current time value
+   * Donde nj es la cantidad de vectores representados por una neurona j, hji es
+   * la funcion de vecindad entre la neurona a actualizar i y la neurona j
+   * y xmj es la media de los vectores representados por la neurona j
+   *
+   * @param current Neurona a entrenar
+   * @param currentRadius Radio de vecindad actual
    */
-  def applySingleBatch (current: Neuron, epoch: Int): Unit = {
-    // Partial results accumulators
+  def applySingleBatch (current: Neuron, currentRadius: Double): Unit = {
+    // Acumuladores de resultados parciales
     var accVector = new Array[Double](dimensionality)
     var accNeigh = 0D
 
-    // Traverses the map
+    // Recorre el mapa
     lattice.neurons.flatten.foreach(bmu => {
-      // Amount of inputs represented by current BMU
+      // Obtiene la cantidad de entradas representadas por la posible BMU actual
       val repAmm = bmu.representedInputs.size
 
+      // La neurona es BMU para al menos una entrada
       if (repAmm > 0) {
-        // The neuron is actually a BMU
-        // Obtains neighborhood rank between current neuron and BMU
-        val neighRank = neighborhoodFn(bmu.xPos, bmu.yPos, current.xPos, current.yPos, decRadius)
+        // Obtiene el valor de vecindad entre la neurona actual y la BMU
+        val neighRank = _neighborhoodFn(bmu.xPos, bmu.yPos, current.xPos, current.yPos, currentRadius)
 
-        // Computes the mean vector of its represented inputs
-        accVector = accVector.zip(bmu.generalizedMedian).map(x => x._1 + (neighRank * repAmm * x._2))
+        // Obtiene la media de los vectores representados por la BMU
+        accVector = accVector.zip(bmu.meanVector).map(x => x._1 + (neighRank * repAmm * x._2))
         accNeigh += repAmm * neighRank
       }
     })
-    // Updates the weight vector with the weighted mean of the inputs
+    // Actualiza el vector de pesos por de la neurona con la media ponderada
     current.weightVector = accVector.map(x => x / accNeigh)
   }
 }

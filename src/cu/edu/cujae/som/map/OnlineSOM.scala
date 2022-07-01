@@ -4,73 +4,76 @@ import cu.edu.cujae.som.data.VectorSet
 import cu.edu.cujae.som.io.MapConfig
 
 /**
- * Class to represent a on-line training Self-Organizing Map
- * @param lattice The lattice of neurons
- * @param learningFactor Learning factor for training
- * @param tuningFactor Factor for tuning stage
- * @param neighRadius Neighborhood radius
- * @param distanceFn Distance metric to use
- * @param neighborhoodFn Neighborhood function
+ * Clase para representar un SOM con enfoque de entrenamiento on-line
+ *
+ * @param _lattice Grilla del mapa
+ * @param _learningFactor Factor de aprendizaje para entrenamiento
+ * @param _tuningFactor Factor de aprendizaje para refinamiento
+ * @param _neighRadius  Radio de vecindad inicial
+ * @param _distanceFn Funcion de distancia a utilizar
+ * @param _neighborhoodFn Funcion de vecindad a utilizar en el entrenamiento
  */
-class OnlineSOM (lattice: Lattice, val learningFactor: Double, val tuningFactor: Double,
-                 neighRadius: Double, distanceFn: (Array[Double], Array[Double]) => Double,
-                 neighborhoodFn: (Float, Float, Float, Float, Double) => Double)
-                 extends SOM (lattice, neighRadius, distanceFn, neighborhoodFn) {
+class OnlineSOM (_lattice: Lattice, private val _learningFactor: Double, private val _tuningFactor: Double,
+                 _neighRadius: Double, _distanceFn: (Array[Double], Array[Double]) => Double,
+                 _neighborhoodFn: (Float, Float, Float, Float, Double) => Double)
+                 extends SOM (_lattice, _neighRadius, _distanceFn, _neighborhoodFn) {
 
   /**
-   * Self-organization process, which lasts for a maximum number
-   * of iterations or until a tolerable QE is reached
-   * @param vectorSet Set of vectors that will be used for training
-   * @param mapConfig Configuration of the SOM which includes the training
-   *                  settings
+   * Proceso de auto-organizacion a realizar mediante el enfoque on-line
+   * por un numero especificado de iteraciones para cada vase
+   *
+   * @param vectorSet Conjunto de vectores de entrada a emplear en el entrenamiento
+   * @param mapConfig Parametros de configuracion del entrenamiento
    */
   def organizeMap (vectorSet: VectorSet, mapConfig: MapConfig): Unit = {
-    // Rough-train the network for a number of iterations
+    // Fase de entrenamiento de la red
     roughTraining(vectorSet, mapConfig.trainIter)
 
-    // Fixes neighborhood rank to only the adjacent neurons of the BMU, as their distance
-    // are always 1 and neighborhood radius if fixed to 1 for tuning stage
-    decRadius = neighborhoodFn(1, 1, 1, 0, 1)
+    // Ajusta el valor de vecindad para solo las vecinas inmediatas de las neuronas
+    val fixedNeigh = _neighborhoodFn(1, 1, 1, 0, 1)
 
-    // Sets tuning factor for neurons
-    lattice.neurons.flatten.foreach(x => x.setTuningRate(tuningFactor))
+    // Establece el factor de refinamiento para las neuronas
+    lattice.neurons.flatten.foreach(x => x.tuningRate = _tuningFactor)
 
-    // Tune the network for a number of iterations
-    tuning(vectorSet, mapConfig.tuneIter)
+    // Fase de refinamiento de la red
+    tuning(vectorSet, fixedNeigh, mapConfig.tuneIter)
 
-    // Once the map is organized, present inputs one last time to form clusters
+    // Agrupa las entradas en el mapa ya organizado
     vectorSet.vectors.foreach(x => clusterInput(x))
 
-    // Updates the trained map MQE standard of deviation
-    updateSdMQE()
+    // Actualiza las metricas de la red
+    somReady()
   }
 
 
   /**
-   * Rough training stage of the map: globally orders the network from a initial
-   * (possibly random) state
-   * @param vectorSet The set used for the training
+   * Entrenamiento global de la red por un numero de iteraciones
+   *
+   * @param vectorSet Vectores de entrada usados para entrenamiento
+   * @param trainIters Numero de iteraciones de entrenamiento
    */
   def roughTraining (vectorSet: VectorSet, trainIters: Int): Unit = {
-    var decFactor = learningFactor
+    // Valores de radio y factor iniciales
+    var decRadius = _neighRadius
+    var decFactor = _learningFactor
 
-    // Applies training for number of iters
     for (t <- 0 until trainIters) {
-      // Iterator over the set
+      // Obtiene el iterador sobre los vectores de entrada
       val setIt = vectorSet.iterator
-      // Present all inputs to the map
+
+      // Presenta todas las entradas al mapa
       while (setIt.hasNext) {
-        // Obtain next vector to analyze
+        // Obtiene el proximo vector a presentar
         val currentVector = setIt.next
-        // Obtain BMU for current input
+        // Obtiene la BMU del vector actual
         val bmu = findBMU(currentVector.vector)
 
-        // Applies learning cycle around the BMU
+        // Aplica ciclo de entrenamiento centrado en la BMU
         lattice.neurons.flatten.foreach(x => {
-          applySingleTraining(bmu._1.xPos, bmu._1.yPos, x, currentVector.vector, decFactor)
+          applySingleTraining(bmu._1.xPos, bmu._1.yPos, x, currentVector.vector, decFactor, decRadius)
         })
       }
-      // Updates factors after iteration
+      // Actualiza los factores al final de la iteracion
       decFactor = updateFactor(t, trainIters)
       decRadius = updateRadius(t, trainIters)
     }
@@ -78,121 +81,119 @@ class OnlineSOM (lattice: Lattice, val learningFactor: Double, val tuningFactor:
 
 
   /**
-   * Tuning stage of the map: after general order has been achieved, it refines
-   * the network for a maximum number of iters or until an acceptable average
-   * MQE has been reached
-   * @param vectorSet The set used for the training
-   * @param tuningIters The maximum number of iters in the stage
+   * Fase de refinamiento de la red despues de que el orden global
+   * se ha alcanzado
+   *
+   * @param vectorSet Vectores de entrada usados en el entrenamiento
+   * @param fixedNeigh Valor de vecindad fijo
+   * @param tuningIters Numero de iteraciones de refinamiento
    */
-  def tuning (vectorSet: VectorSet, tuningIters: Int): Unit = {
-    var i = 0
-
-    do {
-      // Obtains iterator over the inputs
+  def tuning (vectorSet: VectorSet, fixedNeigh: Double, tuningIters: Int): Unit = {
+    for (_ <- 0 until tuningIters) {
+      // Obtiene el iterador sobre los vectores de entrada
       val setIt = vectorSet.iterator
-      avgMQE = 0
 
-      // Present all inputs to the map
+      // Presenta todas las entradas al mapa
       while (setIt.hasNext) {
         // Obtain next vector to analyze
         val currentVector = setIt.next
-        // Obtain BMY for current input
+        // Obtiene la BMU del vector actual
         val bmu = findBMU(currentVector.vector)
 
-        // Accumulates the MQE of each BMU
-        avgMQE += bmu._2
-
-        // Send BMU of current input for tuning
-        applySingleTuning(bmu._1, currentVector.vector)
+        // Refina la BMU y sus vecinas inmediatas
+        applySingleTuning(bmu._1, currentVector.vector, fixedNeigh)
       }
-      // Obtains average MQE
-      avgMQE /= vectorSet.vectors.size
-      i += 1
-    } while (i < tuningIters)
+    }
   }
 
 
   /**
-   * Applies the training function to all neurons in the lattice,
-   * applying a neighboring function to reduce the changes as the
-   * neurons get father from the BMU
+   * Aplica la funcion de actualizacion de pesos a todas las neuronas
+   * del mapa, centrada en la BMU de la entrada actual
    *
-   * Uses the formula:
+   * Emplea la formula:
    * wi (t + 1) = wi (t) + a(t) * hci(t) * dist(wi, vi)
    *
-   * Where hci is the neighboring function which max value is
-   * reached in the BMU and smoothly reduces with distance
+   * Donde hci es la funcion de vecindad cuyo valor maximo se alcanza
+   * en la BMU y se reduce gradualmente con las distancias
    *
-   * @param bmuX Value of x position of the BMU on the lattice
-   * @param bmuY Value of the y position of the BMU on the lattice
-   * @param unit Current neuron to train
-   * @param inputVector Input vector represented by the BMU
+   * @param bmuX Coordenada X de la BMU en la distribucion de la grilla
+   * @param bmuY Coordenada Y de la BMU en la distribucion de la grilla
+   * @param unit Neurona a actualizar
+   * @param inputVector Vector de pesos que fue representado por la BMU
    */
   def applySingleTraining (bmuX: Float, bmuY: Float, unit: Neuron, inputVector: Array[Double],
-                           learnFactor: Double): Unit = {
-    //Gets neuron's weight vector
-    val weights = unit.weights
+                           decFactor: Double, decRadius: Double): Unit = {
+    // Obtiene el vector de pesos de la neurona
+    val weights = unit.weightVector
 
+    // Actualiza cada dimension del vector de pesos
     for (i <- weights.indices) {
       val currentDim = weights(i)
 
-      // Updates current dimension of the weight vector
-      weights.update(i,  currentDim + learnFactor * neighborhoodFn(bmuX, bmuY, unit.xPos, unit.yPos, decRadius) *
+      // Aplica la funcion de actualizacion
+      weights.update(i,  currentDim + decFactor * _neighborhoodFn(bmuX, bmuY, unit.xPos, unit.yPos, decRadius) *
                     (inputVector(i) - currentDim))
     }
   }
 
 
   /**
-   * Applies the training function to a BMU in the tuning stage,
-   * namely, when only the BMU and its immediate neighbors are updated
+   * Refina los pesos de una BMU y sus vecinas inmediatas
    *
-   * Uses the formula:
+   * Usa la formula:
    * wi (t + 1) = wi (t) + a(t) * dist(wi, vi)
-   * for the BMU
+   * para actualizar la BMU
    *
-   * And the formula:
+   * Y la formula:
    * wi (t + 1) = wi (t) + a(t) * hci * dist(wi, vi)
-   * for the neighbors, where hci is invariant in time (only depends on
-   * distance)
-   * t stands for the epochs
+   * para actualizar a sus vecinas, donde hci es un valor de vecindad fijo para
+   * la vecindad inmediata
    *
-   * @param bmu Current BMU
-   * @param inputVector Input vector represented by the BMU
+   * @param bmu BMU a refinar
+   * @param inputVector Vector de entrada que fue representado por la BMU
    */
-  def applySingleTuning (bmu: Neuron, inputVector: Array[Double]): Unit = {
+  def applySingleTuning (bmu: Neuron, inputVector: Array[Double], neighValue: Double): Unit = {
+    // Obtiene el vector de pesos de la BMU
     val vector = bmu.weightVector
-    // Updates each dimension
+
+    // Actualiza cada dimension del vector de pesos
     for (i <- vector.indices) {
       val currentDim = vector(i)
 
-      // Updates current dimension of the weight vector
+      // Aplica la funcion de actualizacion
       vector.update(i, currentDim + bmu.tuningRate * (currentDim - inputVector(i)))
     }
+    // Actualiza el ratio de aprendizaje de la BMU
     bmu.updateTuningRate()
 
-    // Applies tuning to each neighbor
+    // Aplica el refinamiento a cada una de las vecinas inmediatas
     bmu.neighbors.foreach(x => {
-      val weights = x.weights
+      // Obtiene el vector de pesos de la vecina
+      val weights = x.weightVector
 
+      // Actualiza cada dimension del vector de pesos
       for (i <- weights.indices) {
         val currentDim = weights(i)
 
-        // Updates current dimension of the weight vector
-        weights.update(i, currentDim + x.tuningRate * decRadius * (inputVector(i) - currentDim))
+        // Aplica la funcion de actualizacion con vecindad
+        weights.update(i, currentDim + x.tuningRate * neighValue * (inputVector(i) - currentDim))
       }
+      // Actualiza el ratio de aprendizaje de la vecina
       x.updateTuningRate()
     })
   }
 
 
   /**
-   * Updates the learning factor of rough training by inverse-of-the-time
-   * function
-   * @param epoch Current iteration
-   * @return Factor for current iteration
+   * Reduce de forma lineal, inversa del tiempo, el factor de aprendizaje de la fase
+   * de enternamiento
+   *
+   * @param epoch Iteracion actual
+   * @param totIter Total de iteraciones a efectuar
+   * @return Factor de aprendizaje para la iteracion actual
    */
   def updateFactor (epoch: Int, totIter: Float): Double = {
-    learningFactor * (1 - epoch / totIter)
+    _learningFactor * (1 - epoch / totIter)
   }
 }

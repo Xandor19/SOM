@@ -4,189 +4,150 @@ import cu.edu.cujae.som.aux.Utils
 import cu.edu.cujae.som.data.InputVector
 
 /**
- * Class to represent a Self-Organizing Map neuron
- * @param xPos This neuron's x coordinate in the grid
- * @param yPos This neuron's y coordinate in the grid
- * @param weightVector This neuron's weight vector
- * @param hits Amount of inputs that were represented by the neuron, default to 0
- * @param balance Amount of inputs and amount of different classes represented by the neuron, default to (0, 0)
- * @param representedClass Main class of the neuron, default to ("None", 0)
+ * Clase para representar una neurona de un SOM
+ *
+ * @param _xPos Coordenada X en la distribucion de la grilla
+ * @param _yPos Coordenada Y en la distribucion de la grilla
+ * @param _weightVector Vector de pesos de la neurona
+ * @param _hits Cantidad de entradas que fueron representadas por la neurona
+ * @param _balance Cantidad de entradas representadas por la neurona y cantidad de clases de estas
+ * @param _mainClass Clase principal (con mas ocurrencias) en la neurona
  */
-class Neuron (val xPos: Float, val yPos: Float, var weightVector: Array[Double], var hits: Int = 0,
-              var balance: (Int, Int) = (0, 0), var representedClass: String = "None") {
+class Neuron (private val _xPos: Float, private val _yPos: Float, private var _weightVector: Array[Double],
+              private var _hits: Int = 0, private var _balance: (Int, Int) = (0, 0),
+              private var _mainClass: String = "None") {
   /*
-   * Class fields
+   * Atributos de la clase
    */
-  var tuningRate = 0.0
-  var representedInputs = Map.empty[InputVector, Double]
-  var neighbors = List.empty[Neuron]
+  private var _tuningRate = 0.0
+  private var _representedInputs = Map.empty[InputVector, Double]
+  private var _neighbors = List.empty[Neuron]
 
 
   /**
-   * Gets this neuron's current weights vector
-   * @return
-   */
-  def weights: Array[Double] = weightVector
-
-
-  /**
-   * Adds the received input as represented by this neuron (it's the input's BMU)
-   * @param inputVector Vector to be represented by this neuron
+   * Agrega el vector de entrada recibido entre los representados por esta neurona
+   *
+   * @param inputVector Vector a ser representado por la neurona
    */
   def representInput (inputVector: InputVector, qe: Double): Unit = {
-    representedInputs = representedInputs.updated(inputVector, qe)
+    _representedInputs = _representedInputs.updated(inputVector, qe)
   }
 
 
   /**
-   * Obtains the most similar input, e.g, input with a local MQE from those
-   * represented by this neuron
-   * @return InputVector with the local MQE
+   * Obtiene la media de los vectores representados por esta neurona
+   *
+   * @return Vector medio de las entradas representadas
    */
-  def bestMatch: (InputVector, Double) = {
-    representedInputs.minBy(x => x._2)
-  }
-
-
-  /**
-   * Obtains the generalized median of this neuron represented inputs,
-   * e.g, the mean of the input vectors
-   * @return Average vector of the inputs
-   */
-  def generalizedMedian: Array[Double] = {
+  def meanVector: Array[Double] = {
     var mean = new Array[Double](weightVector.length)
 
-    if (representedInputs.nonEmpty) {
-      representedInputs.keys.map(x => x.vector).foreach(vector => {
+    if (_representedInputs.nonEmpty) {
+      _representedInputs.keys.map(x => x.vector).foreach(vector => {
         mean = mean.zip(vector).map(x => x._1 + x._2)
       })
-      mean = mean.map(x => x / representedInputs.size)
+      mean = mean.map(x => x / _representedInputs.size)
     }
     mean
   }
 
 
   /**
-   * Obtains the average of quantification errors with which this
-   * neuron represents its inputs
-   * @return Value of the average QE
+   * Actualiza la cantidad de entradas representadas por esta neurona
    */
-  def averageQE: Double = {
-    if (representedInputs.nonEmpty) representedInputs.values.sum / representedInputs.size
-    else Double.NaN
+  def updateHits (): Unit = _hits = _representedInputs.size
+
+
+  /**
+   * Cuenta cuantas clases diferentes son representadas por esta neurona y la cantidad de
+   * vectores de estas
+   *
+   * @return Map cuyo par llave/valor es [Clase, cantidad de vectores]
+   */
+  def representedClasses: Map[String, Int] = Utils.classCount(_representedInputs.keys)
+
+
+  /**
+   * Actualiza el balance de clases de esta neurona
+   */
+  def updateBalance (): Unit = _balance = (_representedInputs.size, representedClasses.size)
+
+
+  /**
+   * Actualiza la clase principal de esta neurona, aquella con mayor cantidad de
+   * vectores de entrada
+   */
+  def updateMainClass (): Unit = {
+    // La neurona representa al menos un vector, se busca la clase principal
+    if (_representedInputs.nonEmpty) _mainClass = representedClasses.toList.maxBy(x => x._2)._1
+    // La neurona no representa a ningun vector
+    else _mainClass = "None"
   }
 
 
   /**
-   * Updates the hit count of this neuron, the number of inputs that it represents
-   * @param memory Optional parameter to indicate if previous hits must be accumulated
-   *               to current (true) or are discarded (false). False by default
+   * Restablece las entradas representadas por la neurona
    */
-  def updateHits (memory: Boolean = false): Unit = {
-    if (memory) hits += representedInputs.size
-    else hits = representedInputs.size
-  }
+  def clearRepresented(): Unit = _representedInputs = _representedInputs.empty
 
 
   /**
-   * Provides the amount of inputs represented by this neuron
-   * @return
-   */
-  def hitCount: Int = hits
-
-
-  /**
-   * Counts how many classes (e.g, how many different "classification" string attribute)
-   * and how many instances of each one currently this neuron physically represents
-   * @return Map with the classes' names as the keys and the amount of inputs as values
-   */
-  def representedClasses: Map[String, Int] = {
-    // Counts how many inputs are of each class
-    Utils.classCount(representedInputs.keys)
-  }
-
-
-  /**
-   * Provides the classes balance of the neuron
-   * @return Tuple of (amount of inputs, amount of classes)
-   */
-  def classesBalance: (Int, Int) = {
-    balance
-  }
-
-
-  /**
-   * Updates this neurons classes balance
-   */
-  def updateBalance (): Unit = {
-    // Obtains current pair of amount of inputs and amount of classes
-    balance = (representedInputs.size, representedClasses.size)
-  }
-
-
-  /**
-   * Provides the current main class of this neuron
-   * @return Tuple of (class name, amount of inputs)
-   */
-  def mainClass: String = {
-    if (representedClass == "None") {
-      // If no class is represented, attempts to update main class state
-      findMainClass()
-    }
-    representedClass
-  }
-
-
-  /**
-   * Updates the most frequent class of those represented in this neuron
-   */
-  def findMainClass (): Unit = {
-    // Looks for the most frequent class
-    if (representedInputs.nonEmpty) {
-      representedClass = representedClasses.toList.maxBy(x => x._2)._1
-    }
-    // This neuron does not represent any input
-    else {
-      representedClass = "None"
-    }
-  }
-
-
-  /**
-   * Restarts the represented inputs of this neuron
-   */
-  def clearRepresented(): Unit = representedInputs = representedInputs.empty
-
-
-  /**
-   * Adds received neuron as neighbor of this neuron
-   * Neighboring is symmetrical (received neighbor also gets this neuron as neighbor
-   * @param neigh Neuron to be added as neighbor
-   * @return True if the operation was completed, false otherwise
+   * Agrega la neurona recibida como vecina inmediate de esta neurona
+   * La vecindad es simetrica, esta neurona sera agregada como vecina de la recibida
+   *
+   * @param neigh Neurona a ser agregada como vecina
+   * @return True si se completo la operacion, False en caso contraio
    */
   def addNeighbor (neigh: Neuron): Boolean = {
-    // Checks if not null neuron is already defined as neighbor of this neuron
-    if (neigh != null && !neighbors.contains(neigh)) {
-      // Adds received neuron as 1st party neighbor
-      neighbors = neighbors.appended(neigh)
+    // Comprueba que la neurona no tenga agregada a la recibida como vecina
+    if (neigh != null && !_neighbors.contains(neigh)) {
+      // Agrega la neurona como vecina inmediata y viceversa
+      _neighbors = _neighbors.appended(neigh)
       neigh.addNeighbor(this)
       true
     }
-    // Unsuccessful addition
+    // No se completo la operacion
     else false
   }
 
 
   /**
-   * Updates this neuron's tuning factor when is selected as BMU
-   * during the tuning stage
+   * Actualiza el factor de refinamiento de la neurona cuando es seleccionada como BMU
+   * en la fase de refinamiento del aprendizaje on-line
    */
   def updateTuningRate (): Unit = {
-    tuningRate = tuningRate / (1 + tuningRate)
+    _tuningRate = _tuningRate / (1 + _tuningRate)
   }
 
 
-  def setTuningRate (tune: Double): Unit = {
-    if (tune > 0 && tune <= 1) tuningRate = tune
-  }
+  /*
+   * Gets y Sets
+   */
+
+  def xPos: Float = _xPos
+
+  def yPos: Float = _yPos
+
+  def weightVector: Array[Double] = _weightVector
+  def weightVector_= (vector: Array[Double]): Unit = _weightVector = vector
+
+
+  def representedInputs: Map[InputVector, Double] = _representedInputs
+
+
+  def tuningRate: Double = _tuningRate
+  def tuningRate_= (tune: Double): Unit = _tuningRate = tune
+
+
+  def hits: Int = _hits
+  def hits_= (act: Int): Unit = _hits = act
+
+
+  def balance: (Int, Int) = _balance
+
+
+  def mainClass: String = _mainClass
+
+
+  def neighbors: List[Neuron] = _neighbors
 }

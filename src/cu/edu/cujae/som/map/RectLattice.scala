@@ -1,34 +1,42 @@
 package cu.edu.cujae.som.map
 
 /**
- * Class to represent a rectangular-shape lattice
+ * Clase para representar una grilla de distribucion rectangular
  *
- * @param width Width of the lattice
- * @param height Height of the lattice
+ * @param width Ancho de la grilla
+ * @param height Altura de la grilla
  */
 class RectLattice (width: Int, height: Int) extends Lattice (width, height) {
 
   /**
-   * Lattice construction function
-   * @param vectors Vectors to place in the neurons
+   * Funcion para obtener las coordenadas de una neurona segun
+   * la distribucion de la grilla
+   * En la distribucion rectangular los indices y coordenadas coinciden
+   *
+   * @param i Indice de fila en la grilla
+   * @param j Indice de columna en la grilla
+   * @return Tupla (coordenada X, coordenada Y)
    */
-  override def constructLattice (vectors: Iterable[Array[Double]]): Unit = {
-    val it = vectors.iterator
-    // Initializes every neuron in the lattice
-    for (i <- 0 until width; j <- 0 until height) {
-      neurons(i)(j) = new Neuron(i, j, it.next)
+  override def coordFromIndex (i: Int, j: Int): (Float, Float) = (i, j)
 
-      // Assigns left-side adjacent nodes as neighbors of the current neuron
-      // As neurons implement symmetrical neighboring, its only necessary to add 2 neighbors manually
-      if (i > 0) neurons(i)(j) addNeighbor neurons(i - 1)(j)
-      if (j > 0) neurons(i)(j) addNeighbor neurons(i)(j - 1)
-    }
+
+  /**
+   * Funcion para agregar vecinos a una neurona
+   *
+   * @param neuron Neurona a agregar sus vecinos
+   * @param i Indice de fila en la grilla
+   * @param j indice de columna en la grilla
+   */
+  override def addNeighbors (neuron: Neuron, i: Int, j: Int): Unit = {
+    if (i > 0) neurons(i)(j).addNeighbor(neurons(i - 1)(j))
+    if (j > 0) neurons(i)(j).addNeighbor(neurons(i)(j - 1))
   }
 
 
   /**
-   * Provides the distribution of the neurons in this lattice
-   * @return LatticeDistribution constant for this lattice's distribution
+   * Proporciona el identificador del tipo de grilla actual
+   *
+   * @return Constante de LatticeDistribution que representa el tipo de distribucion
    */
   override def latticeType: String = LatticeDistribution.rectangular
 }

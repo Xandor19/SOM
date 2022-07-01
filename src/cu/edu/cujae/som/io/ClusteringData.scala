@@ -1,29 +1,28 @@
 package cu.edu.cujae.som.io
 
 /**
- * Class to store/transfer the results of a clustering test
- * @param config Configuration parameters of the flow
- * @param trainAvMQE Average MQE obtained after training
- * @param trainAvSD Standard of deviation of the training average MQE
- * @param avCorrect Average of correctly classified instances
- * @param avIncorrect Average of incorrectly classified instances
- * @param avPrecision Average of classification precision
- * @param elapsedTime Running time of the test
+ * Clase para almacenar y transferir los resultados de una prueba de agrupamiento
+ *
+ * @param config Parametros de configuracion empleados en el flujo
+ * @param trainAvMQE Error de Cuantificacion Minimo medio obtenido tras el entrenamiento
+ * @param trainAvSD Desviacion estandar del Error de Cuantificacion Minimo
+ * @param avCorrect Promedio de instancias agrupadas correctamente en su clase
+ * @param avIncorrect Promedio de instancias agrupadas incorrectamente en otras clases
+ * @param avPrecision Promedio de precision al agrupar instancias
+ * @param elapsedTime Tiempo de ejecucion de la prueba
  */
-class ClusteringData(config: MapConfig, trainAvMQE: Double, trainAvSD: Double, avCorrect: Double, avIncorrect: Double,
+class ClusteringData (config: MapConfig, trainAvMQE: Double, trainAvSD: Double, avCorrect: Double, avIncorrect: Double,
                      avPrecision: Double, elapsedTime: String)
                     extends ExperimentData (config, trainAvMQE, trainAvSD, elapsedTime) {
 
   /**
-   * Provides a string with the field names for new export files
+   * Proporciona una string con los nombres de los datos contenidos en la clase
    */
   override def attributes: String = super.attributes + "," + "Av success,Av failure,Av Precision"
 
 
   /**
-   * Provides a string with current instance values to transfer
-   * Coma separated string with the result values in the attributes order
+   * Proporciona una string con los valores de resultados almacenados actualmente
    */
   override def data: String = super.data + "," + List(avCorrect, avIncorrect, avPrecision).mkString(",")
-
 }

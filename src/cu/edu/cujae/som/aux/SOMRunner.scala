@@ -8,7 +8,7 @@ import scala.util.Random
 object SOMRunner {
 
   def main(args: Array[String]): Unit = {
-    val trainNew = false
+    val trainNew = true
     val datasetPath = "./Datasets/reduced_card_fraud_normalised_less_anomalies.csv"
     val modelImportPath = "./Pre-trained/anom_great_acc_som_for_reduced_card_fraud_normalised_less_anomalies.json"
     val modelExportPath = "./Pre-trained/"

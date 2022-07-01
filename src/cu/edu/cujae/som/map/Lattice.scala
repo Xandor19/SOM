@@ -3,112 +3,172 @@ package cu.edu.cujae.som.map
 import cu.edu.cujae.som.io.MapIO
 
 /**
- * Class to represent a bi-dimensional SOM Lattice
+ * Clase para representar una grilla bi-dimensional
  *
- * @param width Width of the lattice
- * @param height Height of the lattice
+ * @param _width Ancho de la grilla
+ * @param _height Altura de la grilla
  */
-abstract class Lattice (val width: Int, val height: Int) {
+abstract class Lattice (private val _width: Int, private val _height: Int) {
 
   /*
-   * Class fields
+   * Atributos de la clase
    */
-  val neurons: Array[Array[Neuron]] = Array.ofDim[Neuron](width, height)
+  private val _neurons: Array[Array[Neuron]] = Array.ofDim[Neuron](_width, _height)
 
 
   /**
-   * Abstract construction function
-   * @param vectors Vectors to place in the neurons
+   * Funcion para la construccion de una grilla
+   * La distribucion de las coordenadas y vecindad se modifica de acuerdo
+   * al tipo de grilla
+   *
+   * @param vectors Vectores a colocar como vectores de peso de las neuronas
    */
-  def constructLattice (vectors: Iterable[Array[Double]]): Unit
-
-
-  def loadLattice (neuronData: MapIO): Unit = {
-    val neuIt = neuronData.neurons.iterator
+  def constructLattice (vectors: Iterable[Array[Double]]): Unit = {
+    // Obtiene el iterador sobre los vectores
+    val it = vectors.iterator
 
     for (i <- 0 until width; j <- 0 until height) {
-      val current = neuIt.next
-      val vector = current._1.split(",").map(_.toDouble)
-      val splitBal = current._3.substring(1, 4).split(",").map(_.toInt)
-      val balance = (splitBal.head, splitBal.last)
+      // Obtiene los indices para la neurona actual
+      val indexes = coordFromIndex(i, j)
 
-      neurons(i)(j) = new Neuron(i, j, vector, current._2, balance, current._3)
+      // Crea la neurona
+      neurons(i)(j) = new Neuron(indexes._1, indexes._2, it.next())
+
+      // Asigna los vecinos a la neurona
+      addNeighbors(neurons(i)(j), i, j)
     }
   }
 
 
   /**
-   * Provides the weight vectors of the neurons of the lattice, in horizontal order
-   * @return Array of vectors (array of float) with each row representing a weight vector
+   * Crea una grilla a partir de la configuracion de un modelo previamente entrenado
+   * La distribucion de las coordenadas y vecindad se modifica de acuerdo
+   * al tipo de grilla
+   *
+   * @param neuronData Parametros del modelo importado
    */
-  def vectorSet: Array[Array[Double]] = neurons.flatten.map(x => x.weights)
+  def loadLattice (neuronData: MapIO): Unit = {
+    // Obtiene el iterador sobre los datos de las neuronas
+    val neuIt = neuronData.strToNeurons.iterator
 
+    // Incializa cada neurona
+    for (i <- 0 until _width; j <- 0 until _height) {
+      // Neurona actual
+      val current = neuIt.next()
+      // Obtiene los indices para la neurona actual
+      val indexes = coordFromIndex(i, j)
 
-  /**
-   * Provides a lattice representation with the number of hits of each neuron (inputs
-   * that it represents)
-   * @return Bi-dimensional Int array in which each (i, j) represents the amount
-   *         of inputs clustered in the neuron in that position's
-   */
-  def neuronHits: Array[Array[Int]] = neurons.map(x => x.map(y => y.hitCount))
+      // Crea la neurona a partir de los datos recibidos
+      neurons(i)(j) = new Neuron(indexes._1, indexes._2, current.weightVector, current.hits,
+                                 current.balance, current.mainClass)
 
-
-  /**
-   * Provides a lattice representation with the classes balance of each neuron (total of
-   * inputs and the amount of different classes of the inputs
-   * @return Bi-dimensional array of (Int, Int) tuples in which the first number represents
-   *         the number of hits in the neuron and the second the amount of different classes
-   *         of those hits
-   */
-  def classesBalance: Array[Array[(Int, Int)]] = {
-    neurons.map(x => x.map(y => y.classesBalance))
+      // Asigna los vecinos a la neurona
+      addNeighbors(neurons(i)(j), i, j)
+    }
   }
 
 
   /**
-   * Provides a lattice representation with the main class of each neuron (e.g, the
-   * class with more inputs represented by the neuron
-   * @return Bi-dimensional String array in which each (i, j) represents the main
-   *         class of the neuron in that position
+   * Funcion abstracta para obtener las coordenadas de una neurona segun
+   * la distribucion de la grilla
+   *
+   * @param i Indice de fila en la grilla
+   * @param j Indice de columna en la grilla
+   * @return Tupla (coordenada X, coordenada Y)
    */
-  def mainClasses: Array[Array[String]] = neurons.map(x => x.map(y => y.mainClass))
+  def coordFromIndex (i: Int, j: Int): (Float, Float)
 
 
   /**
-   * Provides the weight vectors of the lattice with the coordinates of their
-   * respective neuron
-   * @return Array of tuples with (x coord, y coord, weight vector)
+   * Funcion abstracta para agregar vecinos a una neurona segun la distribucion
+   * de la grilla
+   *
+   * @param neuron Neurona a agregar sus vecinos
+   * @param i Indice de fila en la grilla
+   * @param j indice de columna en la grilla
    */
-  def indexedVectors: Array[(Float, Float, Array[Double])] = neurons.flatten.map(x => (x.xPos, x.yPos, x.weightVector))
+  def addNeighbors (neuron: Neuron, i: Int, j: Int): Unit
 
 
   /**
-   * Provides the distribution of the neurons in this lattice
-   * @return LatticeDistribution constant for this lattice's distribution
+   * Proporciona una representacion de la grilla con la cantidad de vectores de
+   * entrada que representa cada neurona
+   *
+   * @return Array bi-dimensional de enteros en que cada elemento representa la
+   *         cantidad de representados por la neurona en la posicion
+   */
+  def neuronHits: Array[Array[Int]] = _neurons.map(x => x.map(y => y.hits))
+
+
+  /**
+   * Proporciona una representacion de la grilla con el balance de clases de cada neurona
+   *
+   * @return Array bi-dimensional de tuplas (Cantidad de entradas, cantidad de clases) en que
+   *         cada elemento representa la neurona en la posicion
+   */
+  def classesBalance: Array[Array[(Int, Int)]] = _neurons.map(x => x.map(y => y.balance))
+
+
+  /**
+   * Proporciona una representacion de la grilla con la clase principal de cada neurona
+   *
+   * @return Array bi-dimensional de String en que cada elemento representa la clase
+   *         principal de la neurona en la posicion
+   */
+  def mainClasses: Array[Array[String]] = _neurons.map(x => x.map(y => y.mainClass))
+
+
+  /**
+   * Proporciona los vectores de pesos de las neuronas de esta grilla con la posicion de
+   * la neurona que los contiene
+   *
+   * @return Array de tuplas (coordenada x, coordenada y, vector de pesos) para cada neurona
+   */
+  def indexedVectors: Array[(Float, Float, Array[Double])] = _neurons.flatten.map(x => (x.xPos, x.yPos, x.weightVector))
+
+
+  /**
+   * Proporciona el identificador del tipo de grilla actual
+   *
+   * @return Constante de LatticeDistribution que representa el tipo de distribucion
    */
   def latticeType: String
+
+
+  /*
+   * Gets y Sets
+   */
+
+  def width: Int = _width
+
+
+  def height: Int = _height
+
+
+  def neurons: Array[Array[Neuron]] = _neurons
 }
 
 
 /**
- * Factory object for creating lattices with the specified distribution
+ * Objeto para la creacion de una grilla segun la distribucion especificada
  */
 object LatticeFactory {
   /**
-   * Creates a lattice of the received distribution with the specified parameters
+   * Crea una grilla de la distribucion recibida con los parametros especificados
+   *
    * @param latDistrib Id representing the desired distribution
-   * @param width Width of the lattice
-   * @param height Height of the lattice
-   * @return A initial state lattice of the given distribution
+   * @param width Ancho de la grilla
+   * @param height Altura de la grilla
+   * @return Grilla creada en estado inicial
    */
   def createLattice (latDistrib: String, width: Int, height: Int): Lattice = {
 
     if (latDistrib == LatticeDistribution.rectangular) {
-      // Rectangular lattice
+      // Grilla rectangular
       new RectLattice(width, height)
     }
     else if (latDistrib == LatticeDistribution.hexagonal) {
-      // Hexagonal lattice
+      // Grilla hexagonal
       new HexLattice(width, height)
     }
     else null
@@ -117,7 +177,7 @@ object LatticeFactory {
 
 
 /**
- * Lattice distributions codes for creation
+ * Identificadores para las distribuciones de grillas
  */
 object LatticeDistribution {
   val rectangular = "Rectangular"

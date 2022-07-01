@@ -4,13 +4,16 @@ import cu.edu.cujae.som.data.InputVector
 
 import scala.util.Random
 
+/**
+ * Objeto para proporcionar diferentes funcionalidades de uso general
+ */
 object Utils {
   /**
-   * Provides the different classes of a dataset with their number
-   * of occurrences
-   * @param inputs Set of input vectors to analyze
-   * @return Map of String and Int with each class and is respective
-   *         number of instances
+   * Obtiene las diferentes clases de un conjunto de vectores con
+   * el numero de ocurrencias de cada una
+   *
+   * @param inputs Vectores a analizar
+   * @return Map de [Clase, cantidad de ocurrencias]
    */
   def classCount (inputs: Iterable[InputVector]): Map[String, Int] = {
     inputs.map(x => x.classification).foldLeft(Map.empty[String, Int]) {
@@ -20,42 +23,43 @@ object Utils {
 
 
   /**
-   * Provides a proportional stratified random sampling from a given population
-   * (set of input vectors)
-   * @param population Whole dataset
-   * @param prop Sample proportion to obtain from the dataset
-   * @param shuffleSeed Optional seed for traceable shuffling
-   * @return
+   * Proporciona un muestreo estratificado para obtener una muestra de
+   * un conjunto de vectores
+   *
+   * @param population Conjunto de vectores completo
+   * @param prop Proporcion del conjunto a obtener como muestra
+   * @param shuffleSeed Semilla para "barajeo" traceable
+   * @return Tupla de (muestra deseada, resto de vectores)
    */
   def stratified (population: List[InputVector], prop: Double, shuffleSeed: Long = Random.nextInt):
                  (List[InputVector], List[InputVector]) = {
-    // Random instance
+    // Instancia de random
     val rand = new Random()
     rand.setSeed(shuffleSeed)
-    // Sizes of received population and desired sample
+    // Tamaño total del dataset y de la muestra deseada
     val popSize = population.size
     val sampleSize = (popSize * prop).toInt
-    // Classes with their occurrences
+    // Balance de clases
     val classes = classCount(population).map(x => (x._1, x._2.toDouble / popSize))
-    // Sample ready
+    // Listas para contener los resultados
     var sample = List.empty[InputVector]
     var rest = List.empty[InputVector]
-    // Shuffles the input
+    // Barajea la entrada
     val shuffled = rand.shuffle(population)
 
-    // Adds the corresponding amount of inputs of each class to the sample
+    // Agrega a la muestra la cantidad correspondiente de vectores de cada clase
     classes.foreach(x => {
-      // Amount calculation
+      // Calculo de la cantidad de vectores
       val top = /*math.ceil*/(sampleSize * x._2).toInt
-      // Obtaining only the current class
+      // Instancias de la clase actual
       val ofClass = shuffled.filter(i => i.classification == x._1)
 
-      // Sample updating
+      // Se agrega a la muestra la cantidad correspondiente de vectores de la clase
       sample = sample.appendedAll(ofClass.slice(0, top))
-      // Collecting remaining instances
+      // Vectores restantes
       rest = rest.appendedAll(ofClass.slice(top, ofClass.size))
     })
-    // Shuffles remainder
+    // Barajea el remanente
     rest = rand.shuffle(rest)
 
     (sample, rest)
@@ -63,16 +67,17 @@ object Utils {
 
 
   /**
-   * Splits a set of input vectors in the different classes that composes it
-   * @param dataset Elements of the dataset to split
-   * @return List of lists of vectors of each class
+   * Divide un conjunto de vectores en las diferentes clases que lo conforman
+   *
+   * @param dataset Vectores a dividir
+   * @return Lista de listas de vectores de cada clase
    */
   def splitByClasses (dataset: List[InputVector]): List[List[InputVector]] = {
     var distributed = List.empty[List[InputVector]]
 
-    // Maps dataset by its classes
+    // Mapea los vectores en sus clases
     dataset.map(x => x.classification).distinct.foreach(x => {
-      // Appends all instances of current class
+      // Agreaga las clases de esta instancia a su lista
       distributed = distributed.appended(dataset.filter(v => v.classification == x))
     })
     distributed

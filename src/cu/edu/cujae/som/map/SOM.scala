@@ -6,84 +6,104 @@ import cu.edu.cujae.som.io.{MapConfig, MapIO}
 import scala.util.Random
 
 /**
- * Abstract class to represent general Self-Organizing Map
- * @param lattice The lattice of neurons
- * @param neighRadius Neighborhood radius
- * @param distanceFn Distance metric to use
- * @param neighborhoodFn Neighborhood function
+ * Clase abstracta para representar los elementos generales de un SOM
+ *
+ * @param _lattice Grilla del mapa
+ * @param _neighRadius Radio de vecindad inicial
+ * @param _distanceFn Funcion de distancia a utilizar
+ * @param _neighborhoodFn Funcion de vecindad a utilizar en el entrenamiento
  */
-abstract class SOM (val lattice: Lattice, var neighRadius: Double,
-                    val distanceFn: (Array[Double], Array[Double]) => Double,
-                    val neighborhoodFn: (Float, Float, Float, Float, Double) => Double) {
+abstract class SOM (private val _lattice: Lattice, private val _neighRadius: Double,
+                    private val _distanceFn: (Array[Double], Array[Double]) => Double,
+                    private val _neighborhoodFn: (Float, Float, Float, Float, Double) => Double) {
 
   /*
-   * Class fields
+   * Atributos de clase
    */
-  var dimensionality: Int = 0
-  var decRadius: Double = neighRadius
-  var avgMQE: Double = 0
-  var sdMQE: Double = 0
+  private var _dimensionality: Int = 0
+  private var _avgMQE: Double = 0
+  private var _sdMQE: Double = 0
 
 
   /**
-   * Sets the SOM to a initial state
+   * Establece el estado inicial del SOM a partir de un espacio de entrada
    *
-   * @param trainingSet Input space that will be used for training
-   * @param initFn Function for initializing the weights
-   * @param seed Seed for random initialization
+   * @param trainingSet Espacio de entrada que se utilizara en el entrenamiento
+   * @param initFn Funcion de inicializacion de los vectores de peso del SOM
+   * @param seed Semilla para la inicializacion aleatoria
    */
   def initSOM (trainingSet: VectorSet, initFn: (Iterable[Array[Double]], VectorSet, Long) => Unit,
               seed: Long = Random.nextInt()): Unit = {
-    // Sets the SOM dimensionality
-    dimensionality = trainingSet.dimensionality
+    // Fija la dimensionalidad del SOM
+    _dimensionality = trainingSet.dimensionality
 
-    // Creates a set of vectors with the given initialization function
-    val initVectors = List.fill(lattice.width * lattice.height) {
+    // Crea e inicializa los vectores de pesos para las neuronas
+    val initVectors = List.fill(_lattice.width * _lattice.height) {
       new Array[Double](trainingSet.dimensionality)
     }
     initFn(initVectors, trainingSet, seed)
 
-    // Initializes the lattice with the obtained set
-    lattice.constructLattice(initVectors)
+    // Construye la grilla con los vectores de pesos obtenidos
+    _lattice.constructLattice(initVectors)
   }
 
 
+  /**
+   * Establece el estado de un SOM a partir de la configuracion de
+   * un modelo previamente entrenado
+   *
+   * @param parameters Configuracion del modelo importado
+   */
   def importSOM (parameters: MapIO): Unit = {
-    lattice.loadLattice(parameters)
-    avgMQE = parameters.avMQE
+    // Carga el estado de la grilla
+    _lattice.loadLattice(parameters)
+    // Establece las metricas de error de la red
+    avMQE = parameters.avMQE
     sdMQE = parameters.sdMQE
   }
 
 
   /**
-   * Self-organization process, which lasts for a maximum number
-   * of iterations or until a tolerable QE is reached
+   * Proceso de auto-organizacion
    *
-   * @param vectorSet Set of vectors that will be used for training
-   * @param mapConfig Configuration of the SOM which includes the training
-   *                  settings
+   * @param vectorSet Conjunto de vectores de entrada a emplear en el entrenamiento
+   * @param mapConfig Parametros de configuracion del entrenamiento
    */
   def organizeMap (vectorSet: VectorSet, mapConfig: MapConfig): Unit
 
 
   /**
-   * Finds the best matching unit of a given input, that is,
-   * the neuron for which the quantification error (QE), namely
-   * distance, is minimum to the input vector
-   *
-   * @param input The input vector to find its BMU
-   * @return The neuron that has the MQE for that input and the error value
+   * Completa el estado de la red tras el entrenamiento
    */
-  def findBMU (input: Array[Double]): (Neuron, Double) = {
-    lattice.neurons.flatten.map(x => (x, distanceFn(input, x.weightVector))).minBy(x => x._2)
+  def somReady (): Unit = {
+    lattice.neurons.flatten.foreach(x => {
+      x.updateHits()
+      x.updateBalance()
+      x.updateMainClass()
+    })
+    updateAvMQE()
+    updateSdMQE()
   }
 
 
   /**
-   * Assigns the received input to a neuron of this map
+   * Obtiene la neurona mas representativa (BMU) de un vector de entrada,
+   * aquella neurona cuyo error de cuantificacion (QE), digase distancia,
+   * es el minimo (MQE)
    *
-   * @param inputVector Input vector to cluster in the map
-   * @return BMU for the input
+   * @param input Vector de entrada
+   * @return Tupla (BMU, MQE) para el vector
+   */
+  def findBMU (input: Array[Double]): (Neuron, Double) = {
+    _lattice.neurons.flatten.map(x => (x, _distanceFn(input, x.weightVector))).minBy(x => x._2)
+  }
+
+
+  /**
+   * Asigna el vector de entrada recibido a su BMU
+   *
+   * @param inputVector Vector de entrada para agrupar en el mapa
+   * @return BMU obtenida para el vector
    */
   def clusterInput (inputVector: InputVector): Neuron = {
     // Find the BMU and cluster the input in it
@@ -95,102 +115,127 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
 
 
   /**
-   * Updates neighborhood radius in inverse-of-time function
-   * @param iter Current iteration
+   * Reduce el radio de vecindad de manera lineal, inversa del
+   * tiempo (iteraciones)
+   *
+   * @param iter Iteracion actual
+   * @param totIters Total de iteraciones a realizar
+   * @return Valor del radio para el instante actual
    */
   def updateRadius (iter: Int, totIters: Float): Double = {
-    neighRadius * (1 - iter / totIters)
+    _neighRadius * (1 - iter / totIters)
   }
 
 
   /**
-   * Updates the average MQE of the network by accumulating the QE of each input
-   * represented in the map with its BMU
+   * Actualiza el error medio del mapa obteniendo la media de
+   * error con que cada BMU representa a sus entradas
    */
   def updateAvMQE (): Unit = {
-    avgMQE = lattice.neurons.flatten.flatMap(x => x.representedInputs.values).sum /
-      lattice.neurons.flatten.map(z => z.representedInputs.size).sum
+    _avgMQE = _lattice.neurons.flatten.flatMap(x => x.representedInputs.values).sum /
+      _lattice.neurons.flatten.map(z => z.representedInputs.size).sum
   }
 
 
   /**
-   * Updates the MQE standard of deviation of the network by accumulating the difference
-   * between the QE of each input with its BMU and the average MQE
+   * Actualiza la desviacion estandar del error medio mapa
    */
   def updateSdMQE(): Unit = {
-    sdMQE = math.sqrt(lattice.neurons.flatten.filter(n => n.representedInputs.nonEmpty).
-      flatMap(x => x.representedInputs.map(y => math.pow(y._2 - avgMQE, 2))).sum /
-             (lattice.neurons.flatten.map(z => z.representedInputs.size).sum - 1))
+    _sdMQE = math.sqrt(_lattice.neurons.flatten.filter(n => n.representedInputs.nonEmpty).
+                       flatMap(x => x.representedInputs.map(y => math.pow(y._2 - _avgMQE, 2))).sum /
+                       (_lattice.neurons.flatten.map(z => z.representedInputs.size).sum - 1))
   }
 
 
   /**
-   * Provides the threshold above which an instance mus be considered abnormal
-   * Threshold is obtained as 3 times the upper deviation of the MQE
+   * Obtiene el umbral de normalidad (valor de error) a partir
+   * del cual un registro es considerado anomalo
    *
-   * @return Value of the threshold
+   * Este umbral se considera como el valor de error 3 veces
+   * mas alla de la desviacion estandar
+   *
+   * @return Valor del umbral
    */
   def normalityThreshold: Double = {
-    avgMQE + 3 * sdMQE
+    _avgMQE + 3 * _sdMQE
   }
 
 
   /**
-   * Provides the neuron in the specified array index
-   *
-   * @param x Row position in the array
-   * @param y Column position in the array
-   * @return The neuron
-   */
-  def neuronAt (x: Int, y: Int): Neuron = {
-    lattice.neurons(x)(y)
-  }
-
-
-  /**
-   * Provides this maps's u-matrix, e.g, a matrix in which each cell
-   * represents the average distance of a neuron and its neighbors
-   * @return Bi-dimensional float array with the u-matrix
+   * Proporciona la U-Matrix del mapa, grilla en la que se
+   * representa la distancia media del vector de pesos de
+   * cada neurona a los de sus vecinas
+   * @return Array bi-dimensional con las medias de distancia
    */
   def uMatrix: Array[Array[Double]] = {
-    lattice.neurons.map(x => x.map(neuron => {
-      neuron.neighbors.map(neigh => distanceFn(neuron.weights, neigh.weights)).sum / neuron.neighbors.size
+    _lattice.neurons.map(x => x.map(neuron => {
+      neuron.neighbors.map(neigh => _distanceFn(neuron.weightVector, neigh.weightVector)).sum / neuron.neighbors.size
     }))
   }
+
+
+  /*
+   * Gets y Sets
+   */
+
+  def lattice: Lattice = _lattice
+
+
+  def dimensionality: Int = _dimensionality
+  def dimensionality_=: (dim: Int): Unit = _dimensionality = dim
+
+
+  def avMQE: Double = _avgMQE
+  def avMQE_= (av: Double): Unit = _avgMQE = av
+
+
+  def sdMQE: Double = _sdMQE
+  def sdMQE_= (sd: Double): Unit = _sdMQE = sd
 }
 
+
 /**
- * Factory object for creating a SOM with the specified training approach
+ * Objeto para la creacion de un SOM segun la configuracion especificada
  */
 object SOMFactory {
   /**
-   * Creates the specified type of SOM with the received parameters
-   * @param config Configuration parameters of the SOM
-   * @return Created SOM
+   * Crea el tipo de SOM (por enfoque de entrenamiento) especificado
+   * en los parametros de configuracion
+   *
+   * @param config Parametros de configuracion para crear un SOM
+   * @return SOM creado
    */
   def createSOM (config: MapConfig): SOM = {
-    // Obtains specified functions
+    // Obtiene las funciones a emplear
     val distFn = FunctionCollector.distanceFactory(config.distanceFn)
     val neighFn = FunctionCollector.neighboringFactory(config.neighFn)
 
     if (config.somType == SOMType.onlineSOM) {
-      // Online training SOM
+      // SOM de entrenamiento on-line
       new OnlineSOM(LatticeFactory.createLattice(config.latDistrib, config.width, config.height), config.learnFactor,
                     config.tuneFactor, config.neighRadius, distFn, neighFn)
     }
     else {
-      // Batch learning SOM
+      // SOM de entrenamiento en batch
       new BatchSOM(LatticeFactory.createLattice(config.latDistrib, config.width, config.height), config.neighRadius,
                    distFn, neighFn)
     }
   }
 
 
+  /**
+   * Crea un SOM a partir de los datos de un modelo pre-entrenado recibidos
+   *
+   * @param parameters Configuracion del modelo importado
+   * @return SOM creado
+   */
   def importSOM (parameters: MapIO): SOM = {
+    // Obtiene las funciones a emplear
     val distFn = FunctionCollector.distanceFactory(parameters.distFn)
+    // Crea el SOM
     val som = new BatchSOM(LatticeFactory.createLattice(parameters.latDistrib, parameters.width, parameters.height),
                            0, distFn, null)
-
+    // Importa la configuracion de entrenamiento en el SOM
     som.importSOM(parameters)
     som
   }
@@ -198,7 +243,7 @@ object SOMFactory {
 
 
 /**
- * SOM types (by training approach) codes
+ * Identificadores para los tipos de SOM segun enfoque de entrenamiento
  */
 object SOMType {
   val onlineSOM = "On-line"

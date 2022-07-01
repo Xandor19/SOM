@@ -5,16 +5,16 @@ import cu.edu.cujae.som.data.VectorSet
 import scala.util.Random
 
 /**
- * Contains multiple functions (distance, neighboring, radius decrease)
- * used by the SOM
- * Provides factory methods for obtaining the desired function
+ * Objeto que contiene varias funciones empleadas por el SOM
+ *
  */
 object FunctionCollector {
 
   /**
-   * Provides a specific initialization function given its id
-   * @param init The initialization function's id
-   * @return Desired initialization function or null if the id does not exists
+   * Proporciona una funcion de inicializacion especifica dado su identificador
+   *
+   * @param init Identificador de la funcion de inicializacion
+   * @return Funcion deseada o null si no existe el identificador
    */
   def initFactory (init: String): (Iterable[Array[Double]], VectorSet, Long) => Unit = {
     if (init == InitFns.randomInit) randomInit
@@ -24,9 +24,10 @@ object FunctionCollector {
 
 
   /**
-   * Provides a specific distance function given its id
-   * @param dist The distance function's id
-   * @return Desired distance function or null if the id does not exists
+   * Proporciona una funcion de distancia especifica dado su identificador
+   *
+   * @param dist Identificador de la funcion de distancia
+   * @return Funcion deseada o null si no existe el identificador
    */
   def distanceFactory (dist: String): (Array[Double], Array[Double]) => Double = {
     if (dist == DistanceFns.simpleEuclidean) euclideanDistance
@@ -36,9 +37,10 @@ object FunctionCollector {
 
 
   /**
-   * Provides a specific neighboring function given its id
-   * @param neigh The neighboring function's id
-   * @return Desired neighboring function or null if the id does not exists
+   * Proporciona una funcion de vecindad especifica dado su identificador
+   *
+   * @param neigh Identificador de la funcion de vecindad
+   * @return Funcion deseada o null si no existe el identificador
    */
   def neighboringFactory (neigh: String): (Float, Float, Float, Float, Double) => Double = {
     if (neigh == NeighboringFns.gaussian) gaussianNeighborhood
@@ -47,11 +49,12 @@ object FunctionCollector {
 
 
   /**
-   * Initializes the neuron's weight vectors with random values
-   * between the bounds of each input dimension
-   * @param vectors Neurons to initialize weights
-   * @param vectorSet Input domain for initialization
-   * @param seed Seed for random initialization
+   * Inicializa un set de vectores con valores aleatorios entre los limites
+   * de las dimensiones del espacio de entrada
+   *
+   * @param vectors Vectores de peso a inicializar
+   * @param vectorSet Espacio de entrada a utilizar en la inicializacion
+   * @param seed Semilla para inicializacion aleatoria
    */
   def randomInit (vectors: Iterable[Array[Double]], vectorSet: VectorSet, seed: Long): Unit = {
     // Obtains bounds of the input's dimensions
@@ -67,11 +70,12 @@ object FunctionCollector {
 
 
   /**
-   * Initializes the neuron's weight vectors with random values
-   * normalized between the bounds of each input dimension
-   * @param vectors Neurons to initialize weights
-   * @param vectorSet Input domain for initialization
-   * @param seed Seed for random initialization
+   * Inicializa un set de vectores con valores aleatorios normalizados
+   * entre los limites de las dimensiones del espacio de entrada
+   *
+   * @param vectors Vectores de peso a inicializar
+   * @param vectorSet Espacio de entrada a utilizar en la inicializacion
+   * @param seed Semilla para inicializacion aleatoria
    */
   def normalizedRandomInit (vectors: Iterable[Array[Double]], vectorSet: VectorSet, seed: Long): Unit = {
     // Obtains bounds of the input's dimensions
@@ -92,10 +96,10 @@ object FunctionCollector {
 
 
   /**
-   * Computes the simple euclidean distance between two vectors
-   * @param arr1 1st vector
+   * Calcula la distancia euclideana simple de dos vectores de pesos
+   * @param arr1 1er vector
    * @param arr2 2do vector
-   * @return
+   * @return Valor de distancia
    */
   def euclideanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
     math.sqrt(squaredEuclideanDistance(arr1, arr2))
@@ -103,10 +107,10 @@ object FunctionCollector {
 
 
   /**
-   * Computes the squared euclidean distance between two vectors
-   * @param arr1 1st vector
+   * Calcula la distancia euclideana cuadrada de dos vectores de pesos
+   * @param arr1 1er vector
    * @param arr2 2do vector
-   * @return
+   * @return Valor de distancia
    */
   def squaredEuclideanDistance (arr1: Array[Double], arr2: Array[Double]): Double = {
     (arr1 zip arr2).map(x => math.pow(x._1 - x._2, 2)).sum
@@ -114,17 +118,18 @@ object FunctionCollector {
 
 
   /**
-   * Neighborhood function which gradually reduces the impact of an input
-   * on the neuron depending of its relative position to the BMU
-   * Uses the gaussian function:
+   * Funcion de vecindad para reducir el impacto de un vector de entrada
+   * conforme las neuronas se alejan de su BMU
+   *
+   * Emplea la funcion gaussian:
    * exp(squaredDistance(BMU, neighbor) / 2 * currentRadius**2
    *
-   * @param bmuX Value of x position of the BMU on the lattice
-   * @param bmuY Value of the y position of the BMU on the lattice
-   * @param neighX Value of x position of the neighbor on the lattice
-   * @param neighY Value of the y position of the neighbor on the lattice
-   * @param neighRadius Current neighborhood radius
-   * @return Effect of the function in the neuron learning
+   * @param bmuX Coordenada X de la BMU
+   * @param bmuY Coordenada Y de la BMU
+   * @param neighX Coordenada X de la neurona vecina
+   * @param neighY Coordenada Y de la neurona vecina
+   * @param neighRadius Radio de vecindad actual
+   * @return Valor de vecindad para la neurona con respecto a la BMU
    */
   def gaussianNeighborhood (bmuX: Float, bmuY: Float, neighX: Float, neighY: Float, neighRadius: Double): Double = {
     val distance = squaredEuclideanDistance(Array(bmuX, bmuY), Array(neighX, neighY))
@@ -139,6 +144,9 @@ object FunctionCollector {
 }
 
 
+/**
+ * Identificadores para las funciones de inicializacion
+ */
 object InitFns {
   val randomInit = "Random"
   val normalizedRandomInit = "Normalized Random"
@@ -146,7 +154,7 @@ object InitFns {
 
 
 /**
- * Object for representing the distance functions
+ * Identificadores para las funciones de distancia
  */
 object DistanceFns {
   val simpleEuclidean = "Euclidean"
@@ -155,8 +163,8 @@ object DistanceFns {
 
 
 /**
- * Object for representing the neighboring functions
- */
+* Identificadores para las funciones de vecindad
+*/
 object NeighboringFns {
   val gaussian = "Gaussian"
 }

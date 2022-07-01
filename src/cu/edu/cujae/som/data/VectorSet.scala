@@ -1,80 +1,69 @@
 package cu.edu.cujae.som.data
 
 /**
- * Class to represent a set of input vectors in a tabular view
- * Provides methods to iterate over this vectors in an ordered
- * or randomized way
+ * Clase para representar un conjunto de vectores que define una serie
+ * de operaciones sobre estos
  *
- * @param features Definition of each dimension of the vectors
- * @param vectors Input vectors
+ * @param _features Nombres de los atributos de cada dimension de los vectores
+ * @param _vectors Conjunto de vectores
  */
-class VectorSet (val features: Array[String], val vectors: List[InputVector]) extends Iterable[InputVector] {
+class VectorSet (private val _features: Array[String], private val _vectors: List[InputVector])
+                extends Iterable[InputVector] {
 
   /*
-   * Class fields
+   * Atributos de la clase
    */
-  val dimensionality: Int = features.length - 1
-  val sampleSize: Int = vectors.size
-  protected val bounds: Array[(Double, Double)] = new Array[(Double, Double)](dimensionality)
-  protected var boundsFound = false
+  private val _dimensionality: Int = _features.length - 1
+  private val _sampleSize: Int = _vectors.size
+  private val _dimBounds: Array[(Double, Double)] = new Array[(Double, Double)](_dimensionality)
+  private var _boundsFound = false
 
 
   /**
-   * Calculates the low and top bounds of each dimension in the set
+   * Obtiene los limites superior e inferior de cada dimension de los vectores
    */
   def findBounds (): Unit = {
-    for (i <- 0 until dimensionality) {
-      // Sets initial minimum and maximum as the dimension's value in the first vector
-      var minInDim = vectors.head.vector(i)
+    // Recorre los vectores por sus dimensiones
+    for (i <- 0 until _dimensionality) {
+      // Fija el minimo y maximo inicial como los valores del primer vector
+      var minInDim = _vectors.head.vector(i)
       var maxInDim = minInDim
 
-      // Traverses the rest of the vectors
-      vectors.tail.foreach(x => {
+      // Recorre el resto de vectores
+      _vectors.tail.foreach(x => {
         val current = x.vector(i)
 
-        // A new minimum was found, record is updated
         if (current < minInDim) {
+          // Nuevo minimo encontrado, se actualiza
           minInDim = current
         }
-        // A new maximum was found, record is updated
         else if (current > maxInDim) {
+          // Nuevo maximo encontrado, se actualiza
           maxInDim = current
         }
       })
-      // Sets this dimension's minimum and maximum values
-      bounds.update(i, (minInDim, maxInDim))
+      // Actualiza los limites de la dimension actual
+      _dimBounds.update(i, (minInDim, maxInDim))
     }
-    boundsFound = true
+    // Indica que se conocen los limites del conjunto de vectores
+    _boundsFound = true
   }
 
 
   /**
-   * Provides the dimension's bounds of this set
-   * @return Array of tuples (Double, Double) with the lower and
-   *         upper bounds respectively
-   */
-  def dimBounds: Array[(Double, Double)] = {
-    if (!boundsFound) findBounds()
-    bounds
-  }
-
-
-  /**
-   * Normalizes this set's vectors
-   * Dimension's bounds must be found with findBounds method
-   * before using this method
+   * Normaliza el conjunto de vectores actual
    */
   def normalize (): Unit = {
-    // Checks wetter the dimensions's bound have been found
-    if (!boundsFound) findBounds()
+    // Halla los limites si no han sido encontrados
+    if (!_boundsFound) findBounds()
 
-    vectors.foreach(x => {
-      // Applies normalization for each dimension individually
-      for (i <- 0 until dimensionality) {
-        val currentLow = bounds(i)._1
-        val currentHigh = bounds(i)._2
+    _vectors.foreach(x => {
+      // Aplica la normalizacion en cada dimension
+      for (i <- 0 until _dimensionality) {
+        val currentLow = _dimBounds(i)._1
+        val currentHigh = _dimBounds(i)._2
 
-        // Normalization formula
+        // Formula para normalizacion
         x.vector.update(i, (x.vector(i) - currentLow) / (currentHigh - currentLow))
       }
     })
@@ -82,44 +71,51 @@ class VectorSet (val features: Array[String], val vectors: List[InputVector]) ex
 
 
   /**
-   * Provides this vector set as a table, specifying the dimensions
-   * names and the class of each vector, if known
+   * Proporciona un iterador para las entradas en su orden original
+   *
+   * @return Instancia de SetIterator sobre el conjunto de vectores
    */
-  def asTable (): Unit = {
-    features.foreach(x => print(x + ", "))
-    println()
-    vectors.foreach(x => {
-      x.vector.foreach(y => print(y + ", "))
-      println(x.classification)
-    })
-    println(vectors.length)
+  override def iterator: Iterator[InputVector] = new SetIterator(_vectors)
+
+
+  /*
+   * Gets y Sets
+   */
+
+  def vectors: List[InputVector] = _vectors
+
+
+  def dimensionality: Int = _dimensionality
+
+
+  def sampleSize: Int = _sampleSize
+
+
+  def dimBounds: Array[(Double, Double)] = {
+    // Halla los limites si no han sido encontrados
+    if (!_boundsFound) findBounds()
+    _dimBounds
   }
 
-
   /**
-   * Provides an iterator for the original order of the inputs
-   * @return SetIterator
+   * Iterador sobre un conjunto de vectores de entrada
+   *
+   * @param vectors Vectores de entrada en el orden a iterar
    */
-  override def iterator: Iterator[InputVector] = new SetIterator(vectors)
-
-
-  /**
-   * Iterator for a set of input vectors
-   * @param vectors The input vectors to iterate over
-   */
-  class SetIterator (val vectors: List[InputVector]) extends Iterator[InputVector] {
+  protected class SetIterator (val vectors: List[InputVector]) extends Iterator[InputVector] {
 
     /*
-     * Class fields
+     * Atributos de la clase
      */
     private var accessIndex = -1
     private val sampleSize = vectors.size
 
 
     /**
-     * Checks wetter there are input vectors remaining
-     * @return True if the sequential access has not reached
-     *         the amount of vectors, false otherwise
+     * Comprueba si quedan vectores para iterar
+     *
+     * @return True si el indice de acceso no ha alcanzado el total de vectores,
+     *         False en caso contrario
      */
     override def hasNext: Boolean = {
       accessIndex += 1
@@ -130,8 +126,9 @@ class VectorSet (val features: Array[String], val vectors: List[InputVector]) ex
 
 
     /**
-     * Provides next vector in the iteration order
-     * @return
+     * Proporciona el siguiente vector en el orden de iteracion
+     *
+     * @return InputVector correspondiente
      */
     override def next: InputVector = vectors(accessIndex)
   }
