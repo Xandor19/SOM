@@ -29,7 +29,7 @@ abstract class Lattice (val width: Int, val height: Int) {
     for (i <- 0 until width; j <- 0 until height) {
       val current = neuIt.next
       val vector = current._1.split(",").map(_.toDouble)
-      val splitBal = current._3.split(",").map(_.toInt)
+      val splitBal = current._3.substring(1, 4).split(",").map(_.toInt)
       val balance = (splitBal.head, splitBal.last)
 
       neurons(i)(j) = new Neuron(i, j, vector, current._2, balance, current._3)

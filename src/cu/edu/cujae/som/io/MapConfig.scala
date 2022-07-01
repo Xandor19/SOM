@@ -7,7 +7,6 @@ import scala.util.Random
 /**
  * Class to transfer the configuration parameters of a SOM life cycle
  * @param dataset Path to the dataset that will be applied to the SOM
- * @param setSep Separator of the dataset's csv
  * @param setProp Proportion of the dataset to use as sample
  * @param trainingProp Proportion of the sample to use as training set
  * @param normalize Specifies if data will be normalized
@@ -30,7 +29,7 @@ import scala.util.Random
  * @param resultsExportPath Path to export the results of the training/testing
  * @param trainingExportPath Path to export the results of a new trained SOM
  */
-class MapConfig (var dataset: String, val setSep: Char = ',', val setProp: Double, val trainingProp: Double,
+class MapConfig (var dataset: String, val setProp: Double, val trainingProp: Double,
                  val normalize: Boolean = true, val somType: String, val latDistrib: String, var width: Int = 0,
                  var height: Int = 0, var neighRadius: Int = 0, val learnFactor: Double = 0,
                  val tuneFactor: Double = 0, val initFn: String, val distanceFn: String, val neighFn: String,

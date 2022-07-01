@@ -12,12 +12,14 @@ abstract class ExperimentData (config: MapConfig, trainAvMQE: Double, trainAvSD:
   /*
    * Provides a string with the field names for new export files
    */
-   def attributes: String = config.attributes + "," + "Elapsed time,Av MQE after training,MQE SD after training"
+   def attributes: String = (if (config != null) config.attributes + "," else "") +
+                            "Elapsed time,Av MQE after training,MQE SD after training"
 
 
   /**
    * Provides a string with current instance values to transfer
    * Coma separated string with the result values in the attributes order
    */
-   def data: String = config.parameters + "," + List(elapsedTime, trainAvMQE, trainAvSD).mkString(",")
+   def data: String = (if (config != null) config.parameters + "," else "") +
+                      List(elapsedTime, trainAvMQE, trainAvSD).mkString(",")
 }

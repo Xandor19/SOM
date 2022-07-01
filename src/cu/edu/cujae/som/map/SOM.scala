@@ -25,16 +25,6 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
   var sdMQE: Double = 0
 
 
-  def this (parameters: MapIO) {
-    this(LatticeFactory.createLattice(parameters.latDistrib, parameters.width, parameters.height), 0,
-         FunctionCollector.distanceFactory(parameters.distFn), null)
-
-    lattice.loadLattice(parameters)
-    avgMQE = parameters.avMQE
-    sdMQE = parameters.sdMQE
-  }
-
-
   /**
    * Sets the SOM to a initial state
    *
@@ -55,6 +45,13 @@ abstract class SOM (val lattice: Lattice, var neighRadius: Double,
 
     // Initializes the lattice with the obtained set
     lattice.constructLattice(initVectors)
+  }
+
+
+  def importSOM (parameters: MapIO): Unit = {
+    lattice.loadLattice(parameters)
+    avgMQE = parameters.avMQE
+    sdMQE = parameters.sdMQE
   }
 
 
@@ -186,6 +183,16 @@ object SOMFactory {
       new BatchSOM(LatticeFactory.createLattice(config.latDistrib, config.width, config.height), config.neighRadius,
                    distFn, neighFn)
     }
+  }
+
+
+  def importSOM (parameters: MapIO): SOM = {
+    val distFn = FunctionCollector.distanceFactory(parameters.distFn)
+    val som = new BatchSOM(LatticeFactory.createLattice(parameters.latDistrib, parameters.width, parameters.height),
+                           0, distFn, null)
+
+    som.importSOM(parameters)
+    som
   }
 }
 

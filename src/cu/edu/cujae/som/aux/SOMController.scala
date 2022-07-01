@@ -19,7 +19,7 @@ object SOMController {
    */
   def newSOMFlow(config: MapConfig): Unit = {
     // Loads the main dataset
-    val dataset = ReaderWriter.loadSet(config.dataset, config.setSep)
+    val dataset = ReaderWriter.loadSet(config.dataset)
 
     // Gets dataset name
     config.dataset = config.dataset.slice(config.dataset.lastIndexOf("/") + 1, config.dataset.lastIndexOf("."))
@@ -106,7 +106,7 @@ object SOMController {
     val exportName = "clust_results_of_" + config.dataset + ".csv"
 
     // Exports the experiment average results
-    ReaderWriter.exportExperimentResult(config.resultsExportPath + exportName, config.setSep,
+    ReaderWriter.exportExperimentResult(config.resultsExportPath + exportName,
                                         List[ExperimentData](new ClusteringData(config, trainingAvMQE, trainingMQEDeviation,
                                                              avgCorrect, avgIncorrect, avgPrecision,
                                                              String.format(seconds/60 + ":" + seconds%60))))
@@ -201,12 +201,11 @@ object SOMController {
       val greatAcc = origPath + "anom_great_acc_som_for_" + config.dataset + ".json"
       ReaderWriter.exportTraining(greatAcc, prepareExport(config, created.minBy(x => x._2)._1))
     }
-
     // Constructs the name of the results export file
     val exportName = "anom_results_of_" + config.dataset + ".csv"
 
     // Exports the run results
-    ReaderWriter.exportExperimentResult(config.resultsExportPath + exportName, config.setSep,
+    ReaderWriter.exportExperimentResult(config.resultsExportPath + exportName,
                                         List[ExperimentData](new DetectionData(config, trainingAvMQE, trainingMQEDeviation,
                                                              avgTruePos, avgFalseNeg, avgTrueNeg, avgFalsePos, avgConf,
                                                              avgSens, avgAcc, String.format(seconds/60 + ":" + seconds%60))))
@@ -299,6 +298,74 @@ object SOMController {
     som.organizeMap(trainingSet, config)
 
     som
+  }
+
+
+  /**
+   * Maneja el flujo de la importacion de un modelo pre-entrenado y su evaluacion con un dataset
+   * @param configPath Ruta hacia el fichero .json con los parametros del modelo
+   * @param datasetPath Ruta hacia el fichero .csv que contiene al dataset
+   */
+  def importSOMFlow (configPath: String, datasetPath: String, resultPath: String): Unit = {
+    val parameters = ReaderWriter.loadTraining(configPath)
+    val dataset = ReaderWriter.loadSet(datasetPath)
+    val testSet = new VectorSet(dataset._1, dataset._2)
+    val som = SOMFactory.importSOM(parameters)
+
+    if (parameters.normalized) testSet.normalize()
+
+    if (parameters.task == Tasks.clustering) importClustFlow(som, testSet, parameters.dataset, resultPath)
+    else if (parameters.task == Tasks.anomaly) importAnomFlow (som, testSet, parameters.dataset, resultPath)
+  }
+
+
+  /**
+   * Flujo de prueba de agrupamiento para un modelo importado
+   * @param som Modelo pre-entrenado a evaluar
+   * @param testSet Set de pruebas a emplear
+   * @param setName Nombre del dataset a emplear
+   * @param resultPath Ruta del fichero de exportacion de los resultados
+   */
+  private def importClustFlow (som: SOM, testSet: VectorSet, setName: String, resultPath: String): Unit = {
+    val init = System.nanoTime()
+    val results = clusterTest(som, testSet)
+    val end = System.nanoTime()
+
+    val seconds = TimeUnit.SECONDS.convert(end - init, TimeUnit.NANOSECONDS)
+    val elapsed = String.format("%s:%s", seconds / 60, seconds % 60)
+
+    val expName = resultPath + "import_clust_of_" + setName + ".csv"
+
+    ReaderWriter.exportExperimentResult(expName, List[ExperimentData]
+      (new ClusteringData(null, som.avgMQE, som.sdMQE, results._1, results._2, results._3, elapsed)))
+  }
+
+
+  /**
+   * Flujo de prueba de agrupamiento para un modelo importado
+   * @param som Modelo pre-entrenado a evaluar
+   * @param testSet Set de pruebas a emplear
+   * @param setName Nombre del dataset a emplear
+   * @param resultPath Ruta del fichero de exportacion de los resultados
+   */
+  private def importAnomFlow (som: SOM, testSet: VectorSet, setName: String, resultPath: String): Unit = {
+    val init = System.nanoTime()
+    val results = anomalyTest(som, testSet)
+    val end = System.nanoTime()
+
+    // Obtains this experiment's parameters
+    val conf = results._1 / (results._1 + results._4).toFloat
+    val sens = results._1 / (results._1 + results._2).toFloat
+    val acc = (results._1 + results._3) / (results._1 + results._2 + results._3 + results._4).toFloat
+
+    val seconds = TimeUnit.SECONDS.convert(end - init, TimeUnit.NANOSECONDS)
+    val elapsed = String.format("%s:%s", seconds / 60, seconds % 60)
+
+    val expName = resultPath + "import_anom_of_" + setName + ".csv"
+
+    ReaderWriter.exportExperimentResult(expName, List[ExperimentData]
+                                        (new DetectionData(null, som.avgMQE, som.sdMQE, results._1, results._2,
+                                        results._3, results._4, conf, sens, acc, elapsed)))
   }
 
 

@@ -13,10 +13,9 @@ object ReaderWriter {
   /**
    * Loads a generic csv file into a list of records
    * @param path Path to csv file
-   * @param separator Columns separator of the csv
    * @return List with all the csv's lines
    */
-  def loadCSV (path: String, separator: Char): List[String] = {
+  def loadCSV (path: String): List[String] = {
     // Opens file
     val bufferedSource = io.Source.fromFile(path)
     // Read all lines from file
@@ -39,14 +38,13 @@ object ReaderWriter {
    * leave class field as " "
    *
    * @param path Path to csv file
-   * @param separator Columns separator of the csv
    * @return Tuple of (inputs dimension, input features, inputs)
    */
-  def loadSet (path: String, separator: Char): (Array[String], List[InputVector]) = {
+  def loadSet (path: String): (Array[String], List[InputVector]) = {
     // Reads csv
-    val records = loadCSV (path, separator)
+    val records = loadCSV (path)
     // Obtains features names
-    val features = records.head.split(separator).map(_.trim)
+    val features = records.head.split(",").map(_.trim)
     // Obtains the input's dimensionality
     val dimensionality = features.length - 1
     // Empty vectors list
@@ -57,7 +55,7 @@ object ReaderWriter {
     // Iterates over all inputs
     records.tail.foreach(i => {
       // Clears current input into separated no-spaced columns
-      val cleared = i.split(separator).map(_.trim)
+      val cleared = i.split(",").map(_.trim)
 
       // Creates this input's vector by splitting the features values from the labeled class
       vectors = vectors.appended(new InputVector(rowIndex, dimensionality,
@@ -85,8 +83,8 @@ object ReaderWriter {
     val height = reader.getInt("height")
     val normalized = reader.getBoolean("normalized")
     val distFn = reader.getString("dist_funct")
-    val avMQE = reader.getString("av_mqe").toDouble
-    val sdMQE = reader.getString("mqe_sd").toDouble
+    val avMQE = reader.getJsonNumber("av_mqe").doubleValue()
+    val sdMQE = reader.getJsonNumber("mqe_sd").doubleValue
     val neurons = reader.getJsonArray("neurons").toArray.
                                                  map(_.asInstanceOf[JsonObject]).
                                                  map(y => (y.getString("vector"), y.getInt("hits"),
@@ -135,17 +133,16 @@ object ReaderWriter {
   /**
    * Exports the results of a experiment to a csv
    * @param path Destination file of the export
-   * @param sep Csv separator
    * @param data Resulting parameters to export
    */
-  def exportExperimentResult (path: String, sep: Char, data: List[ExperimentData]): Unit = {
+  def exportExperimentResult (path: String, data: List[ExperimentData]): Unit = {
     // List to store old file's content
     var existing = List.empty[String]
     var prev = true
 
     try {
       // Tries to load the destination file
-      existing = existing.appendedAll(loadCSV(path, sep))
+      existing = existing.appendedAll(loadCSV(path))
     }
     catch {
       // The destination file has not been created

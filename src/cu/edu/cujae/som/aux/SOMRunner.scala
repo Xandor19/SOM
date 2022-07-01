@@ -8,8 +8,9 @@ import scala.util.Random
 object SOMRunner {
 
   def main(args: Array[String]): Unit = {
-    val path = "./Datasets/reduced_card_fraud_normalised_less_anomalies.csv"
-    val sep = ','
+    val trainNew = false
+    val datasetPath = "./Datasets/reduced_card_fraud_normalised_less_anomalies.csv"
+    val modelImportPath = "./Pre-trained/anom_great_acc_som_for_reduced_card_fraud_normalised_less_anomalies.json"
     val modelExportPath = "./Pre-trained/"
     val resultsExportPath = "./Results/"
     val setProp = 1
@@ -33,13 +34,18 @@ object SOMRunner {
     var shuffleSeed = Random.nextInt()
 
 
-    SOMController.newSOMFlow(new MapConfig(dataset = path, setSep = sep, trainingExportPath = modelExportPath,
-                             resultsExportPath = resultsExportPath, setProp = setProp, trainingProp = trainingSetProp,
-                             normalize = normalize, task = task, runs = experiments, somType = somType,
-                             latDistrib = latDistrib, width = latWidth, height = latHeight, neighRadius = latNeighRadius,
-                             learnFactor = onlineLearningFactor, tuneFactor = onlineTuningFactor,
-                             trainIter = trainingIters, tuneIter = onlineTuningIters, initFn = initFn,
-                             distanceFn = distanceFn, neighFn = neighborhoodFn, randInitSeed = initSeed,
-                             randShuffleSeed = shuffleSeed))
+    if (trainNew) {
+      SOMController.newSOMFlow(new MapConfig(dataset = datasetPath, trainingExportPath = modelExportPath,
+        resultsExportPath = resultsExportPath, setProp = setProp, trainingProp = trainingSetProp,
+        normalize = normalize, task = task, runs = experiments, somType = somType,
+        latDistrib = latDistrib, width = latWidth, height = latHeight, neighRadius = latNeighRadius,
+        learnFactor = onlineLearningFactor, tuneFactor = onlineTuningFactor,
+        trainIter = trainingIters, tuneIter = onlineTuningIters, initFn = initFn,
+        distanceFn = distanceFn, neighFn = neighborhoodFn, randInitSeed = initSeed,
+        randShuffleSeed = shuffleSeed))
+    }
+    else {
+      SOMController.importSOMFlow(modelImportPath, datasetPath, resultsExportPath)
+    }
   }
 }
