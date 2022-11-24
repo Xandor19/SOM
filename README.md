@@ -1,11 +1,29 @@
 # SOM
 
-Mapa Auto-Organizativo en Scala básico.<br/>
-Implementa variantes de entrenamiento secuencial y por lotes y grillas bidimensionales (actualmente rectangulares y hexagonales).
-Es extensible para ambos casos extendiendo a las clases SOM y Lattice respectivamente
+Implementación de Mapa Auto-Organizativo (SOM) en Scala para las prácticas profesionales de 2do año.<br/>
 
-Self-Organizing Map in pure Scala.<br/>
-Implements on-line and batch training approaches and bi-dimensional lattices (currently rectangular and hexagonal)
-It is extensible for both cases by extending the SOM and Lattice classes respectively.
+Con la finalidad de evaluar los SOM en la detección de anomalías se añade tal funcionalidad a la red.<br/>
 
-English code comments will be added 
+## Contenido
+
+<ul>
+  <li> Implementación de SOM para entrenamiento secuencial (on-line) y por lotes (batch). <li/>
+  <li> Clases para la representación y manipulación de los vectores de entrada. <li/>
+  <li> Contenedor de funciones para flexibilizar la red a varias configuraciones de estas. <br/>
+       Se pueden emplear distintas funciones para uno de los conjuntos siguientes
+       <ol>
+          <li> Inicialización de la red <li/>
+          <li> Funciones de distancia <li/>
+          <li> Funciones de vecindad <li/>
+       </ol>
+  </li>
+  <li> Clases de manipulación de configuración en la que incluir todos los parámetros necesarios para construir una red </li>
+  <li> Clases de manipulación de los parámetros medidos en las pruebas a la red
+  <li> Lectura y escritura en memoria externa mediante archivos csv. <br/> 
+       Soporta la lectura de datasets y la exportación de los resultados de una prueba. <br/>
+       Permite la exportación de una red entrenada y carga de esta a través de archivos .json
+  </li>
+  <li> Clase con utilidades varias para el uso de la red, como conteo de los clases, muestreos y otras mannipulaciones a los datos </li>
+  <li> Controladora con los flujos usados para las diferentes pruebas en la red </li>
+</ul>
+
